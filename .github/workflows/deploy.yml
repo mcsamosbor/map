@@ -14,7 +14,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'          # или 18, 22 – согласно вашему проекту
+          node-version: '24'          # или 18, 22 – согласно вашему проекту
           cache: 'npm'                # кешируем зависимости для ускорения
 
       - name: Install dependencies
