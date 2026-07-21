@@ -1,5 +1,5 @@
 // types/global.d.ts
-import { vHide } from "../src/directives/vHide";
+import vHide from "@/directives/vHide";
 
 declare module "@vue/runtime-core" {
   // Расширяем интерфейс директив, чтобы добавить тип для v-hide

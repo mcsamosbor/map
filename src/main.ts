@@ -3,12 +3,10 @@ import { createPinia } from "pinia";
 
 import App from "./App.vue";
 import router from "./router";
-import vHide from "./directives/vHide.ts";
+import vHide from "./directives/vHide";
 
 import { renderer, patchProp as defPatchProp } from "vue3-pixi";
 import { Viewport, type IViewportOptions } from "pixi-viewport";
-import type { ViewportProps } from "./types/vue3-pixi";
-import VueKonva from "vue-konva";
 
 // Регистрируем Viewport как кастомный элемент
 renderer.use({
@@ -39,6 +37,5 @@ app.directive("hide", vHide);
 
 app.use(createPinia());
 app.use(router);
-app.use(VueKonva);
 
 app.mount("#app");
