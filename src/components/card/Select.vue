@@ -15,7 +15,7 @@
       <ul v-if="isOpen" class="select-options">
         <li
           v-for="option in options"
-          :key="option.value"
+          :key="option.value?.toString() ?? 'undefined'"
           class="select-option"
           :class="{ 'is-selected': option.value === model }"
           @click="selectOption(option)"
@@ -27,15 +27,15 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends number | string | boolean | undefined">
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 
 /**
  * Тип для опции селекта
  */
-export interface SelectOption {
+export interface SelectOption<T> {
   label: string;
-  value: string | number;
+  value: T;
 }
 
 /**
@@ -43,7 +43,7 @@ export interface SelectOption {
  */
 const props = defineProps<{
   /** Список опций */
-  options: SelectOption[];
+  options: SelectOption<T>[];
   /** Включён ли компонент (редактируемость) */
   enabled?: boolean;
   /** Плейсхолдер, когда ничего не выбрано */
@@ -53,7 +53,7 @@ const props = defineProps<{
 /**
  * Двусторонняя привязка значения через v-model
  */
-const model = defineModel<string | number>();
+const model = defineModel<T>();
 
 /**
  * Состояние открытости списка
@@ -84,7 +84,7 @@ const toggle = () => {
 /**
  * Выбор опции
  */
-const selectOption = (option: SelectOption) => {
+const selectOption = (option: SelectOption<T>) => {
   if (!props.enabled) return;
   model.value = option.value;
   isOpen.value = false;
@@ -171,7 +171,8 @@ onBeforeUnmount(() => {
     margin: 0;
     padding: 0;
     list-style: none;
-    background: var(--bg-button-color-enabled, #f0f0f0);
+    background: var(--bg-button-color);
+    color: var(--str-button-font-active);
     // border: 1px solid #ccc;
     border-radius: 4px;
     max-height: 200px;
@@ -186,11 +187,11 @@ onBeforeUnmount(() => {
     transition: background 0.15s;
 
     &:hover {
-      background: #60a7d627;
+      background: #60a7d6;
     }
 
     &.is-selected {
-      background: #6093d644;
+      background: #23354d;
       font-weight: 500;
       color: var(--str-button-font-active);
     }

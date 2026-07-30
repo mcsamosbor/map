@@ -15,7 +15,6 @@ import {
   useBlocksStore,
   type BlockType,
   type BlockUid,
-  type FlightData,
 } from "@/stores/blocks.ts";
 import { useAuthorization } from "@/stores/authorization.ts";
 import PlaceInput from "./PlaceInput.vue";
@@ -56,11 +55,17 @@ const isDoubleFloor = computed({
   },
 });
 
-const options: { label: string; value: BlockType }[] = [
+const blockTypeOptions: { label: string; value: BlockType }[] = [
   { label: "Жилой", value: "residential" },
   { label: "Разрушенный", value: "destroyed" },
   { label: "Мясной", value: "infected" },
   { label: "Ледяной", value: "frozen" },
+];
+
+const canCreateOptions: { label: string; value: boolean | undefined }[] = [
+  { label: "Неизвестно", value: undefined },
+  { label: "Да", value: true },
+  { label: "Нет", value: false },
 ];
 
 const directionToDegree = {
@@ -250,7 +255,16 @@ const changeIsMiddleFlight = () => {
       <span>Тип блока: </span>
       <Select
         v-model="blockData.type"
-        :options="options"
+        :options="blockTypeOptions"
+        :enabled="isEditing"
+        placeholder="Выберите..."
+      />
+    </div>
+    <div class="block-type-info">
+      <span>Можно создать блок: </span>
+      <Select
+        v-model="blockData.can_create_block"
+        :options="canCreateOptions"
         :enabled="isEditing"
         placeholder="Выберите..."
       />
@@ -307,12 +321,32 @@ const changeIsMiddleFlight = () => {
       </div>
     </div>
     <span class="line"></span>
-    <PlacesInput
-      :what="'generator'"
-      :size="[14, 18]"
-      v-model="blockData.places"
-      :enabled="isEditing"
-    ></PlacesInput>
+    <div class="professions-row">
+      <PlacesInput
+        :what="'liquidator'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'repairman'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'cleaner'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'plumber'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+    </div>
   </div>
 </template>
 <style lang="scss" scoped>
@@ -491,6 +525,13 @@ const changeIsMiddleFlight = () => {
 .place-floor-input {
   width: 32px;
   height: 20px;
+}
+
+.professions-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: start;
 }
 </style>
 <style>

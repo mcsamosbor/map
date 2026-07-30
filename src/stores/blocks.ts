@@ -87,12 +87,13 @@ export type BlockRawData = {
   left_flight?: FlightData;
   right_flight?: FlightData;
   middle_flight?: FlightData;
-  is_middle_flight: boolean;
+  is_middle_flight?: boolean;
 
-  has_balcony: boolean;
-  has_roof: boolean;
+  has_balcony?: boolean;
+  has_roof?: boolean;
   flood_floor: number | null;
-  is_pipe: boolean;
+  is_pipe?: boolean;
+  can_create_block?: boolean;
 
   places: PlaceData[];
 
