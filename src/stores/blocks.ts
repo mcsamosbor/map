@@ -54,6 +54,23 @@ export type PlaceData = {
   type: PlaceType;
 };
 
+export const safePlaceTypes: PlaceType[] = [
+  "theatre",
+  "party",
+  "gym",
+  "overview",
+  "gallery",
+  "racing",
+  "hockey",
+  "spleef",
+  "pool",
+  "warehouse",
+] as const;
+
+export const IsSafePlace = (place: PlaceType) => {
+  return safePlaceTypes.includes(place);
+};
+
 export type BlockUid = number;
 
 export const PassagePositions = [

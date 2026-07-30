@@ -11,6 +11,7 @@ import Select from "./Select.vue";
 import {
   BlockDirections,
   FlightTypes,
+  IsSafePlace,
   nextValue,
   useBlocksStore,
   type BlockType,
@@ -102,6 +103,14 @@ const changeIsMiddleFlight = () => {
     type: "stairs",
   };
 };
+
+const safePlaces = computed(
+  () =>
+    blockData.value?.places
+      .filter(({ type }) => IsSafePlace(type))
+      .map(({ floor }) => floor)
+      .sort((a, b) => b - a) ?? [],
+);
 </script>
 
 <template>
@@ -347,6 +356,35 @@ const changeIsMiddleFlight = () => {
         :enabled="isEditing"
       ></PlacesInput>
     </div>
+    <span class="line"></span>
+    <div class="places-row">
+      <div class="places-input">
+        <Icon name="safe" :size="[24, 24]" />
+        <ValueInput
+          v-for="value in safePlaces"
+          class="place-floor-input"
+          v-bind:model-value="value?.toString()"
+        />
+      </div>
+      <PlacesInput
+        :what="'theatre'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'hospital'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'party'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+    </div>
   </div>
 </template>
 <style lang="scss" scoped>
@@ -518,6 +556,13 @@ const changeIsMiddleFlight = () => {
 
 .place-input {
   display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.places-input {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 5px;
 }
