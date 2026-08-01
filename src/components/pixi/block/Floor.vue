@@ -1,5 +1,12 @@
 <script lang="ts" setup>
-import { nextValue, PassageTypes, type BlockData, type PassagePosition } from "@/stores/blocks";
+import {
+  IsSafePlace,
+  nextValue,
+  PassageTypes,
+  type BlockData,
+  type PassagePosition,
+  type PlaceType,
+} from "@/stores/blocks";
 import type { Graphics } from "pixi.js";
 import { computed } from "vue";
 import Flight from "./Flight.vue";
@@ -27,6 +34,16 @@ import Passage from "./Passage.vue";
 import Part from "./Part.vue";
 import MiddleFlight from "./MiddleFlight.vue";
 import { BoxShadowFilter } from "pixi-box-shadow";
+import Icon from "./Icon.vue";
+
+import liquidatorIcon from "@/assets/icons/block/liquidator.svg?raw";
+import repairmanIcon from "@/assets/icons/block/repairman.svg?raw";
+import cleanerIcon from "@/assets/icons/block/cleaner.svg?raw";
+import plumberIcon from "@/assets/icons/block/plumber.svg?raw";
+import safeIcon from "@/assets/icons/block/safe.svg?raw";
+import hospitalIcon from "@/assets/icons/block/hospital.svg?raw";
+import theatreIcon from "@/assets/icons/block/theatre.svg?raw";
+import partyIcon from "@/assets/icons/block/party.svg?raw";
 
 const props = defineProps<{ block: BlockData; floor: number; x?: number; y?: number }>();
 const emit = defineEmits<{
@@ -119,6 +136,18 @@ const boxShadowFilter = computed(
 );
 
 const textStyle = { fill: "white", fontSize: 36, fontWeight: "600", fontFamily: "Roboto" } as const;
+
+const rIcon = (path: string) => {
+  return path.replaceAll(/currentColor/g, "#FFFFFF");
+};
+
+const hasPlace = (place: PlaceType) => {
+  return props.block.places.find(({ type }) => type === place) !== undefined;
+};
+
+const hasSafePlace = computed(() => {
+  return props.block.places.find(({ type }) => IsSafePlace(type)) !== undefined;
+});
 </script>
 <template>
   <Container :x="x" :y="y" @pointertap="emit('click')">
@@ -212,11 +241,76 @@ const textStyle = { fill: "white", fontSize: 36, fontWeight: "600", fontFamily: 
       v-bind="toPos(...getPartPosition(...vSum(professionsPartPosition, mainPartsShift)))"
       :color="mainColor"
     >
+      <template v-if="!block.is_pipe">
+        <Icon
+          v-if="hasPlace('liquidator')"
+          :path="rIcon(liquidatorIcon)"
+          :size="34"
+          :x="PART_SIZE / 4"
+          :y="PART_SIZE / 4"
+        >
+        </Icon>
+        <Icon
+          v-if="hasPlace('repairman')"
+          :path="rIcon(repairmanIcon)"
+          :size="34"
+          :x="(PART_SIZE * 3) / 4"
+          :y="PART_SIZE / 4"
+        >
+        </Icon>
+        <Icon
+          v-if="hasPlace('cleaner')"
+          :path="rIcon(cleanerIcon)"
+          :size="34"
+          :x="PART_SIZE / 4"
+          :y="(PART_SIZE * 3) / 4"
+        >
+        </Icon>
+        <Icon
+          v-if="hasPlace('plumber')"
+          :path="rIcon(plumberIcon)"
+          :size="34"
+          :x="(PART_SIZE * 3) / 4"
+          :y="(PART_SIZE * 3) / 4"
+        ></Icon>
+      </template>
     </Part>
     <Part
       v-bind="toPos(...getPartPosition(...vSum(placesPartPosition, mainPartsShift)))"
       :color="mainColor"
     >
+      <template v-if="!block.is_pipe">
+        <Icon
+          v-if="hasSafePlace"
+          :size="34"
+          :path="rIcon(safeIcon)"
+          :x="PART_SIZE / 4"
+          :y="PART_SIZE / 4"
+        ></Icon>
+        <Icon
+          v-if="hasPlace('hospital')"
+          :path="rIcon(hospitalIcon)"
+          :size="34"
+          :x="(PART_SIZE * 3) / 4"
+          :y="PART_SIZE / 4"
+        >
+        </Icon>
+        <Icon
+          v-if="hasPlace('theatre')"
+          :path="rIcon(theatreIcon)"
+          :size="34"
+          :x="PART_SIZE / 4"
+          :y="(PART_SIZE * 3) / 4"
+        >
+        </Icon>
+        <Icon
+          v-if="hasPlace('party')"
+          :path="rIcon(partyIcon)"
+          :size="34"
+          :x="(PART_SIZE * 3) / 4"
+          :y="(PART_SIZE * 3) / 4"
+        ></Icon>
+      </template>
     </Part>
     <Part
       v-bind="toPos(...getPartPosition(...vSum(floorsPartPositions[block.direction], [0, 0])))"

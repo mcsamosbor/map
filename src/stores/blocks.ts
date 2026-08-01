@@ -65,6 +65,8 @@ export const safePlaceTypes: PlaceType[] = [
   "spleef",
   "pool",
   "warehouse",
+  "liquidator",
+  "plumber",
 ] as const;
 
 export const IsSafePlace = (place: PlaceType) => {

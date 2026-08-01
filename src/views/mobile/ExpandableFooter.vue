@@ -144,6 +144,7 @@ onUnmounted(() => {
   padding-top: 8px;
   position: relative;
   overflow-y: auto;
+  scrollbar-width: none;
   .handler {
     display: flex;
     flex-direction: column;

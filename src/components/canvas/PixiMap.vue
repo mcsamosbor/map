@@ -36,7 +36,6 @@
 import { ref, onMounted, useTemplateRef, computed } from "vue";
 import { Viewport as PIXIViewport } from "pixi-viewport";
 import { useBlocksStore } from "@/stores/blocks";
-import { initDevtools } from "@pixi/devtools";
 import { Application } from "vue3-pixi";
 import Block from "../pixi/block/Block.vue";
 
@@ -77,7 +76,6 @@ const onViewportMounted = (viewport: any) => {
 onMounted(() => {
   console.log(canvasHolder.value);
   observer.observe(canvasHolder.value!);
-  initDevtools({ app: appRef.value?.app! });
 
   updateAppSizes();
 });
