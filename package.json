@@ -19,10 +19,10 @@
     "pinia": "^3.0.4",
     "pixi-box-shadow": "^1.2.1",
     "pixi-viewport": "^6.0.3",
-    "pixi.js": "^8.19.0",
+    "pixi.js": "^8.14.3",
     "vue": "^3.5.32",
     "vue-router": "^5.0.4",
-    "vue3-pixi": "^1.0.2"
+    "vue3-pixi": "^1.0.1"
   },
   "devDependencies": {
     "@spiriit/vite-plugin-svg-spritemap": "^7.0.0",

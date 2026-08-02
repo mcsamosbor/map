@@ -20,18 +20,13 @@ const blocksStore = useBlocksStore();
 
 const floor = computed(() => blocksStore.layer - props.block.layer);
 
-// TODO поправить с учетом двойных этажей
-const isVisible = computed(() => {
-  return floor.value >= props.block.min_floor && floor.value <= props.block.max_floor;
-});
-
 const selectBlock = () => {
   blocksStore.selectedBlockId = props.block.id;
 };
 </script>
 
 <template>
-  <Container v-if="isVisible" :x="x()" :y="y()">
+  <Container :x="x()" :y="y()">
     <Floor :block="block" :floor="floor" :x="PADDING" :y="PADDING" @click="selectBlock"></Floor>
   </Container>
 </template>

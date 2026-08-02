@@ -84,6 +84,42 @@ export const passagePositions: {
   right: getPassageCells([5, 1]),
 };
 
+const zero_TransitionPositions = {
+  up: [0, 0],
+  right: [2, 0],
+  down: [4, 3],
+  left: [0, 4],
+} as const;
+
+export const getTransitionCells = (up: [number, number]) => {
+  return {
+    up,
+    right: [
+      zero_TransitionPositions.right[0] - up[1],
+      zero_TransitionPositions.right[1] + up[0],
+    ] satisfies [number, number],
+    down: [
+      zero_TransitionPositions.down[0] - up[0],
+      zero_TransitionPositions.down[1] - up[1] - 1,
+    ] satisfies [number, number],
+    left: [
+      zero_TransitionPositions.left[0] + up[1],
+      zero_TransitionPositions.left[1] - up[0],
+    ] satisfies [number, number],
+  };
+};
+
+export const transitionPositions: {
+  [pos in PassagePosition]: { [dir in BlockDirection]: [number, number] };
+} = {
+  up_left: getTransitionCells([1, 0]),
+  up_right: getTransitionCells([3, 0]),
+  down_right: getTransitionCells([3, 2]),
+  down_left: getTransitionCells([1, 2]),
+  left: getTransitionCells([0, 1]),
+  right: getTransitionCells([4, 1]),
+};
+
 export const getPartPosition = (cellX: number, cellY: number): [number, number] => {
   const containerPadding = GAP;
   const gridSize = PART_SIZE + PASSAGE_WIDTH + 2 * GAP;

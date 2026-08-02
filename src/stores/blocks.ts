@@ -143,6 +143,15 @@ interface DbBlockRow {
   updated_at: string;
 }
 
+export const validatePassage = (
+  type: PassageType | undefined,
+  position: PassagePosition,
+): PassageType => {
+  if (position === "left" || position === "right") return "normal";
+  if (type === undefined) return "noway";
+  return type;
+};
+
 export const useBlocksStore = defineStore("blocks", {
   state: () => {
     return {
