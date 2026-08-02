@@ -54,11 +54,6 @@ const transformations = computed(() => {
   let resultY = y - h / 2;
   let resultWidth = w;
   let resultHeight = h;
-  //   const rw =
-  //     w +
-  //     ((props.left || props.right) && props.type === "noway" && isVertical() ? GAP : 0);
-  //   const rx = x - w / 2 + (props.right && props.type === "noway" ? -GAP : 0);
-  //   const rh = h + (props.type === "normal" && (props.up || props.down) ? GAP : 0);
   const effectIndex =
     ((props.type === "noway" ? getNowayShift() : getNormalShift()) +
       BlockDirections.indexOf(props.direction)) %

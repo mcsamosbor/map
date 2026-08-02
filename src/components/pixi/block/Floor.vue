@@ -3,6 +3,7 @@ import {
   IsSafePlace,
   nextValue,
   PassageTypes,
+  useBlocksStore,
   type BlockData,
   type PassagePosition,
   type PlaceType,
@@ -70,8 +71,11 @@ const bgColor = computed(() => colors[props.block.name.charAt(0)]?.bg ?? "#A8A8A
 const getPassageType = (pos: PassagePosition) => {
   return props.block.floors_data?.[props.floor]?.passages_data?.[pos] ?? "noway";
 };
+
+const blocksStore = useBlocksStore();
+
 const changePassageType = (pos: PassagePosition) => {
-  console.log(pos);
+  if (!blocksStore.isEditing) return;
   props.block.floors_data ??= {};
   const floor = props.floor;
   props.block.floors_data[floor] ??= {};
