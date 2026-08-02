@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { PART_SIZE } from "@/const/rendering";
+import { PART_SIZE, rIcon } from "@/const/rendering";
 import type { FlightData, FlightStatus, FlightType } from "@/stores/blocks";
 import type { ColorSource, Graphics } from "pixi.js";
 import Part from "./Part.vue";
@@ -26,10 +26,6 @@ const duoIconSize = 40;
 const iconSize = computed(() =>
   props.data?.type === "ladder_elevator" ? duoIconSize : soloIconSize,
 );
-
-const rIcon = (path: string) => {
-  return path.replace(/currentColor/, "#FFFFFF");
-};
 </script>
 <template>
   <Part :x="x" :y="y" :color="color">

@@ -142,6 +142,10 @@ export const blockTypeColors: { [type in BlockType]: ColorSource } = {
   destroyed: "#EEFF00",
 };
 
+export const rIcon = (path: string) => {
+  return path.replace(/currentColor/, "#FFFFFF");
+};
+
 export const colors: { [letter: string]: { bg: ColorSource; main: ColorSource } } = {
   А: { bg: "#BD9EFF", main: "#9A76E7" },
   Б: { bg: "#FF9E9E", main: "#EB6B6B" },

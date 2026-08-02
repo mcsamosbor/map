@@ -1,7 +1,11 @@
 <script lang="ts" setup>
-import { PASSAGE_WIDTH, PART_SIZE, getPassagePosition, GAP } from "@/const/rendering";
+import { PASSAGE_WIDTH, PART_SIZE, getPassagePosition, GAP, rIcon } from "@/const/rendering";
 import { BlockDirections, type BlockDirection, type PassageType } from "@/stores/blocks";
 import type { ColorSource, Graphics } from "pixi.js";
+import Icon from "./Icon.vue";
+import StairsIcon from "@/assets/icons/block/stairs.svg?raw";
+import { computed } from "vue";
+const stairsIcon = rIcon(StairsIcon);
 
 const props = defineProps<{
   type: PassageType;
@@ -42,7 +46,7 @@ const getNormalShift = () => {
   return 0;
 };
 
-const drawPassage = (graphics: Graphics) => {
+const transformations = computed(() => {
   const [x, y] = getPassagePosition(...props.pos);
   const w = width();
   const h = height();
@@ -77,14 +81,48 @@ const drawPassage = (graphics: Graphics) => {
     default:
       break;
   }
+  return { x: resultX, y: resultY, width: resultWidth, height: resultHeight };
+});
 
-  graphics.clear().rect(resultX, resultY, resultWidth, resultHeight).fill(currentColor());
+const center = computed(() => {
+  const t = transformations.value;
+  return { x: t.x + t.width / 2, y: t.y + t.height / 2 };
+});
+
+const drawPassage = (graphics: Graphics) => {
+  const { x, y, width, height } = transformations.value;
+
+  graphics.clear().rect(x, y, width, height).fill(currentColor());
   graphics.alpha = isVertical() ? 1 : 0;
 };
+
+const hasStairs = () => {
+  return props.type === "stairs_down" || props.type === "stairs_up";
+};
+
+const textStyle = { fill: "white", fontSize: 26, fontWeight: "600", fontFamily: "Roboto" } as const;
+
+const shift = computed(() =>
+  props.direction === "down" || props.direction === "up" ? { x: 0, y: 20 } : { x: 20, y: 0 },
+);
 </script>
 <template>
   <Container @click="emit('click')">
     <Graphics @effect="drawPassage"></Graphics>
-    <Container></Container>
+    <Container v-if="hasStairs()">
+      <Icon
+        :path="rIcon(stairsIcon)"
+        :size="30"
+        :x="center.x + shift.x"
+        :y="center.y + shift.y"
+      ></Icon>
+      <Text
+        :style="textStyle"
+        :text="props.type === 'stairs_down' ? '-1' : '1'"
+        :x="center.x - shift.x"
+        :y="center.y - shift.y"
+        :anchor="0.5"
+      ></Text>
+    </Container>
   </Container>
 </template>
