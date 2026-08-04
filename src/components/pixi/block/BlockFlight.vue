@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import { PART_SIZE, rIcon } from "@/const/rendering";
-import type { FlightData, FlightStatus, FlightType } from "@/stores/blocks";
-import type { ColorSource, Graphics } from "pixi.js";
-import Part from "./Part.vue";
-import Icon from "./Icon.vue";
+import type { FlightData } from "@/types/block";
+import type { ColorSource } from "pixi.js";
+import Part from "./FloorPart.vue";
+import Icon from "./FloorIcon.vue";
 import { computed } from "vue";
 import ladderIcon from "@/assets/icons/block/ladder.svg?raw";
 import elevatorIcon from "@/assets/icons/block/elevator.svg?raw";
@@ -15,10 +15,6 @@ const props = defineProps<{
   x: number;
   y: number;
 }>();
-
-const drawBg = (graphics: Graphics) => {
-  graphics.clear().rect(0, 0, PART_SIZE, PART_SIZE).fill(props.color);
-};
 
 const soloIconSize = 50;
 const duoIconSize = 40;

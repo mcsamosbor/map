@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { FlightType } from "@/stores/blocks.ts";
+import type { FlightType } from "@/types/block";
 import Icon from "../common/Icon.vue";
-const props = defineProps<{
+defineProps<{
   type: FlightType;
   enabled?: boolean;
 }>();

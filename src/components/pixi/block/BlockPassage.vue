@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { PASSAGE_WIDTH, PART_SIZE, getPassagePosition, GAP, rIcon } from "@/const/rendering";
-import { BlockDirections, type BlockDirection, type PassageType } from "@/stores/blocks";
+import { BlockDirections, type BlockDirection, type PassageType } from "@/types/block";
 import type { ColorSource, Graphics } from "pixi.js";
-import Icon from "./Icon.vue";
+import Icon from "./FloorIcon.vue";
 import StairsIcon from "@/assets/icons/block/stairs.svg?raw";
 import { computed } from "vue";
 const stairsIcon = rIcon(StairsIcon);
@@ -113,7 +113,7 @@ const shift = computed(() =>
       ></Icon>
       <Text
         :style="textStyle"
-        :text="props.type === 'stairs_down' ? '-1' : '1'"
+        :text="props.type === 'stairs_down' ? '-1' : '+1'"
         :x="center.x - shift.x"
         :y="center.y - shift.y"
         :anchor="0.5"

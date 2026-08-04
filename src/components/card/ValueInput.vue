@@ -1,6 +1,6 @@
 <script lang="ts" setup generic="T">
 const value = defineModel<T>();
-const props = defineProps<{
+defineProps<{
   enabled?: boolean;
 }>();
 const emit = defineEmits<{

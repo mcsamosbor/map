@@ -1,12 +1,13 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 
-import App from "./App.vue";
-import router from "./router";
-import vHide from "./directives/vHide";
+import App from "@/App.vue";
+import router from "@/router";
+import vHide from "@/directives/vHide";
 
 import { renderer, patchProp as defPatchProp } from "vue3-pixi";
 import { Viewport, type IViewportOptions } from "pixi-viewport";
+import { RepositoryManager } from "@/repository/manager.ts";
 
 // Регистрируем Viewport как кастомный элемент
 renderer.use({
@@ -37,5 +38,9 @@ app.directive("hide", vHide);
 
 app.use(createPinia());
 app.use(router);
+
+export const repoManager = new RepositoryManager();
+
+repoManager.changeRepositories("supabase");
 
 app.mount("#app");

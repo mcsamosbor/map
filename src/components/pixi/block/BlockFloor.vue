@@ -1,16 +1,8 @@
 <script lang="ts" setup>
-import {
-  IsSafePlace,
-  nextValue,
-  PassageTypes,
-  useBlocksStore,
-  type BlockData,
-  type PassagePosition,
-  type PlaceType,
-} from "@/stores/blocks";
+import { IsSafePlace, type BlockData, type PassagePosition, type PlaceType } from "@/types/block";
 import type { Graphics } from "pixi.js";
 import { computed } from "vue";
-import Flight from "./Flight.vue";
+import Flight from "./BlockFlight.vue";
 import {
   BLOCK_HEIGHT,
   BLOCK_WIDTH,
@@ -31,11 +23,11 @@ import {
   professionsPartPosition,
   rightFlightPositions,
 } from "@/const/rendering.ts";
-import Passage from "./Passage.vue";
-import Part from "./Part.vue";
+import Passage from "./BlockPassage.vue";
+import Part from "./FloorPart.vue";
 import MiddleFlight from "./MiddleFlight.vue";
 import { BoxShadowFilter } from "pixi-box-shadow";
-import Icon from "./Icon.vue";
+import Icon from "./FloorIcon.vue";
 
 import liquidatorIcon from "@/assets/icons/block/liquidator.svg?raw";
 import repairmanIcon from "@/assets/icons/block/repairman.svg?raw";
@@ -45,6 +37,7 @@ import safeIcon from "@/assets/icons/block/safe.svg?raw";
 import hospitalIcon from "@/assets/icons/block/hospital.svg?raw";
 import theatreIcon from "@/assets/icons/block/theatre.svg?raw";
 import partyIcon from "@/assets/icons/block/party.svg?raw";
+import { useBlocksStore } from "@/stores/blocks";
 
 const props = defineProps<{ block: BlockData; floor: number; x?: number; y?: number }>();
 const emit = defineEmits<{
@@ -76,11 +69,8 @@ const blocksStore = useBlocksStore();
 
 const changePassageType = (pos: PassagePosition) => {
   if (!blocksStore.isEditing) return;
-  props.block.floors_data ??= {};
   const floor = props.floor;
-  props.block.floors_data[floor] ??= {};
-  props.block.floors_data[floor].passages_data ??= {};
-  props.block.floors_data[floor].passages_data[pos] = nextValue(PassageTypes, getPassageType(pos));
+  blocksStore.changePassageType(props.block.id, floor, pos);
 };
 
 const drawRow = (graphics: Graphics) => {
@@ -134,7 +124,7 @@ const getFloorText = (floor: number) => {
 const boxShadowFilter = computed(
   () =>
     new BoxShadowFilter({
-      boxShadow: `0 0 20px 20px ${blockTypeColors[props.block.type]}`,
+      boxShadow: `0 0 20px 20px ${blockTypeColors[props.block.type ?? "residential"]}`,
       borderRadius: 10,
     }),
 );
@@ -146,11 +136,11 @@ const rIcon = (path: string) => {
 };
 
 const hasPlace = (place: PlaceType) => {
-  return props.block.places.find(({ type }) => type === place) !== undefined;
+  return props.block.places?.find(({ type }) => type === place) !== undefined;
 };
 
 const hasSafePlace = computed(() => {
-  return props.block.places.find(({ type }) => IsSafePlace(type)) !== undefined;
+  return props.block.places?.find(({ type }) => IsSafePlace(type)) !== undefined;
 });
 </script>
 <template>

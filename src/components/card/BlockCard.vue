@@ -7,19 +7,19 @@ import Button from "./Button.vue";
 import FlightDisplay from "./FlightDisplay.vue";
 import PosComponent from "./PosComponent.vue";
 import Checkbox from "./Checkbox.vue";
-import Select from "./Select.vue";
+import Select from "./ValueSelect.vue";
 import {
   BlockDirections,
   FlightTypes,
   IsSafePlace,
-  nextValue,
-  useBlocksStore,
   type BlockType,
   type BlockUid,
-} from "@/stores/blocks.ts";
+} from "@/types/block";
 import { useAuthorization } from "@/stores/authorization.ts";
 import PlaceInput from "./PlaceInput.vue";
 import PlacesInput from "./PlacesInput.vue";
+import { useBlocksStore } from "@/stores/blocks";
+import { nextValue } from "@/utils";
 
 const blocksStore = useBlocksStore();
 const blockData = computed(() => blocksStore.getBlock(props.blockId));
@@ -107,7 +107,7 @@ const changeIsMiddleFlight = () => {
 const safePlaces = computed(
   () =>
     blockData.value?.places
-      .filter(({ type }) => IsSafePlace(type))
+      ?.filter(({ type }) => IsSafePlace(type))
       .map(({ floor }) => floor)
       .sort((a, b) => b - a) ?? [],
 );
@@ -361,7 +361,8 @@ const safePlaces = computed(
       <div class="places-input">
         <Icon name="safe" :size="[24, 24]" />
         <ValueInput
-          v-for="value in safePlaces"
+          v-for="(value, index) in safePlaces"
+          :key="index"
           class="place-floor-input"
           v-bind:model-value="value?.toString()"
         />

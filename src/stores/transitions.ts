@@ -1,39 +1,27 @@
 import { supabase } from "@/supabase";
 import { defineStore } from "pinia";
-import { useBlocksStore, type BlockData, type BlockUid, type PassagePosition } from "./blocks";
+import { type BlockData, type BlockUid, type PassagePosition } from "@/types/block";
 import { transitionPositions } from "@/const/rendering";
 import { NestedMap3 } from "@/utils";
+import { useBlocksStore } from "./blocks";
+import type { TransitionRepository } from "@/repository/transition/repo";
+import { getTransitionsCell, type TransitionData, type TransitionId } from "@/types/transition";
 
-export type TransitionId = number;
-
-export type DbTransitionRow = {
-  id: TransitionId;
-  from_block_id: BlockUid;
-  to_block_id: BlockUid;
-  from_floor: number;
-  from_position: PassagePosition;
-  to_floor: number;
-  to_position: PassagePosition;
-};
-
-export type TransitionData = DbTransitionRow;
-
-export const getTransitionsCell = (block: BlockData, passagePosition: PassagePosition) => {
-  const blockX = block.position_x;
-  const blockY = -block.position_y;
-  const transitionPos = transitionPositions[passagePosition][block.direction];
-  const transitionX = blockX * 2 + transitionPos[0];
-  const transitionY = blockY * 2 + transitionPos[1];
-  return [transitionX, transitionY] satisfies [number, number];
-};
+export interface TransitionsStore {
+  repository: TransitionRepository | null;
+  transitions: TransitionData[];
+  loading: boolean;
+  error: string | null;
+}
 
 export const useTransitionsStore = defineStore("transitions", {
-  state: () => {
-    return {
-      transitions: [] as TransitionData[],
-      loading: false,
-    };
-  },
+  state: (): TransitionsStore => ({
+    repository: null,
+    transitions: [],
+    loading: false,
+    error: null,
+  }),
+
   getters: {
     mappedTransitions: (state) => {
       const map = new NestedMap3<number, number, number, TransitionData>();
@@ -48,33 +36,60 @@ export const useTransitionsStore = defineStore("transitions", {
       return map;
     },
   },
+
   actions: {
-    addTransition(data: TransitionData) {
-      this.transitions.push(data);
-    },
-    removeTransition(transitionId: TransitionId) {
-      this.transitions = this.transitions.filter(({ id }) => id !== transitionId);
-    },
-    async fetchTransitions() {
+    /**
+     * Установить или сменить репозиторий.
+     * При вызове:
+     *  - отключает предыдущий репозиторий (если был)
+     *  - очищает transitions и ошибки
+     *  - инициализирует новый репозиторий, который загрузит данные
+     */
+    async setRepository(newRepo: TransitionRepository) {
+      this.loading = true;
+      this.error = null;
+
+      // Отключаем старый репозиторий
+      if (this.repository) {
+        this.repository.destroy();
+      }
+
+      this.repository = newRepo;
+
       try {
-        this.loading = true;
-        const { data, error } = await supabase
-          .from("transitions")
-          .select(
-            "id, from_block_id, to_block_id, from_floor, from_position, to_floor, to_position",
-          )
-          .order("id", { ascending: true });
-
-        if (error) throw error;
-
-        this.transitions = (data as DbTransitionRow[]).map((row) => ({
-          ...row,
-        }));
-      } catch (err: any) {
-        console.error("fetchBlocks error:", err);
+        await this.repository.init(this);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          this.error = err.message;
+        } else {
+          this.error = "Неизвестная ошибка";
+        }
       } finally {
         this.loading = false;
       }
+    },
+
+    /**
+     * Вызвать при уничтожении стора (например, в onUnmounted).
+     * Отключает текущий репозиторий и обнуляет ссылку.
+     */
+    destroyRepository() {
+      if (this.repository) {
+        this.repository.destroy();
+        this.repository = null;
+      }
+    },
+
+    // ---- Методы работы с данными ----
+
+    async addTransition(data: TransitionData) {
+      if (!this.repository) throw new Error("Repository not set");
+      await this.repository.addTransition(data);
+    },
+
+    async removeTransition(transitionId: TransitionId) {
+      if (!this.repository) throw new Error("Repository not set");
+      await this.repository.removeTransition(transitionId);
     },
   },
 });

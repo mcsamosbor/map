@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PlaceData, PlaceType } from "@/stores/blocks";
+import type { PlaceData, PlaceType } from "@/types/block";
 import Icon from "../common/Icon.vue";
 import ValueInput from "./ValueInput.vue";
 import { computed, reactive, watch } from "vue";
@@ -78,6 +78,7 @@ const handleBlur = (item: PlaceData) => {
     <Icon :name="what" :size="size" />
     <ValueInput
       v-for="({ item, value }, index) in filteredItems"
+      :key="index"
       class="place-floor-input"
       v-bind:model-value="value?.toString()"
       @update:model-value="(newValue?: string) => handleChange(item, newValue)"

@@ -3,10 +3,11 @@ import MenuButton from "@/components/common/MenuButton.vue";
 import ExpandableFooter from "./ExpandableFooter.vue";
 import SearchInput from "@/components/common/SearchInput.vue";
 
-import { useBlocksStore, type BlockUid } from "@/stores/blocks.ts";
+import { useBlocksStore } from "@/stores/blocks.ts";
 import BlockCard from "@/components/card/BlockCard.vue";
 import { useAuthorization } from "@/stores/authorization.ts";
-import Canvas from "@/components/canvas/Canvas.vue";
+import Canvas from "@/components/canvas/MainCanvas.vue";
+import { repoManager } from "@/main.ts";
 
 const blocksStore = useBlocksStore();
 const authorization = useAuthorization();
@@ -38,6 +39,16 @@ const authorization = useAuthorization();
           :enabled="blocksStore.isEditing"
           @click="() => (blocksStore.isEditing = !blocksStore.isEditing)"
         ></MenuButton>
+        <MenuButton
+          v-if="authorization.isEditor"
+          @click="() => repoManager.changeRepositories('mock')"
+          >test</MenuButton
+        >
+        <MenuButton
+          v-if="authorization.isEditor"
+          @click="() => repoManager.changeRepositories('supabase')"
+          >real</MenuButton
+        >
         <!-- <MenuButton icon-name="profile"></MenuButton> -->
         <!-- тут основные кнопки: профиль, инфо, закладки -->
       </div>

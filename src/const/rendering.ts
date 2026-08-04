@@ -1,4 +1,4 @@
-import type { BlockDirection, BlockType, PassagePosition } from "@/stores/blocks";
+import type { BlockDirection, BlockType, PassagePosition } from "@/types/block";
 import { type ColorSource } from "pixi.js";
 
 export const CELL_SIZE = 380;

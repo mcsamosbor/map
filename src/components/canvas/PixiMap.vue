@@ -1,5 +1,5 @@
 <template>
-  <div ref="canvasHolder" class="pixi-map">
+  <div ref="canvasHolder" class="pixi-map" @contextmenu.prevent>
     <!-- qwe -->
     <Application
       v-if="canvasHolder"
@@ -23,14 +23,16 @@
       >
         <Container :x="viewportSize / 2" :y="viewportSize / 2">
           <Block v-for="block in visibleBlocks" :block="block" :key="`block_${block.id}`"></Block>
-          <BlockTransition
-            v-if="store.isEditing"
-            v-for="{ cell: [cellX, cellY], info } in possibleTransitions"
-            :key="`possible_transition_${cellX}_${cellY}`"
-            :cell="[cellX, cellY]"
-            @click="createTransition(cellX, cellY, info)"
-            :type="'creatable'"
-          ></BlockTransition>
+          <template v-if="store.isEditing"
+            ><BlockTransition
+              v-for="{ cell: [cellX, cellY], info } in possibleTransitions"
+              :key="`possible_transition_${cellX}_${cellY}`"
+              :cell="[cellX, cellY]"
+              @click="createTransition(cellX, cellY, info)"
+              :type="'creatable'"
+            ></BlockTransition
+          ></template>
+
           <BlockTransition
             v-for="transition in existsTransitions"
             :key="`transition_${transition.cell[0]}_${transition.cell[1]}`"
@@ -49,19 +51,21 @@ import { ref, onMounted, useTemplateRef, computed } from "vue";
 import { Viewport as PIXIViewport } from "pixi-viewport";
 import {
   PassagePositions,
-  useBlocksStore,
   validatePassage,
   type BlockData,
   type BlockUid,
   type PassagePosition,
   type PassageType,
-} from "@/stores/blocks";
+} from "@/types/block";
 import { Application } from "vue3-pixi";
-import Block from "../pixi/block/Block.vue";
+import Block from "../pixi/block/DisplayBlock.vue";
 import { transitionPositions } from "@/const/rendering.ts";
 import BlockTransition from "../pixi/block/Transition.vue";
-import { getTransitionsCell, useTransitionsStore } from "@/stores/transitions.ts";
+import { useTransitionsStore } from "@/stores/transitions.ts";
 import { NestedMap2 } from "@/utils.ts";
+import { useBlocksStore } from "@/stores/blocks";
+import { getTransitionsCell } from "@/types/transition.ts";
+import { useCanvasContextStore } from "@/stores/canvasContext.ts";
 
 const canvasHolder = useTemplateRef("canvasHolder");
 
@@ -85,8 +89,10 @@ const observer = new ResizeObserver(() => {
   updateAppSizes();
 });
 
-const onViewportMounted = (viewport: any) => {
-  const pixiviewport = viewport.el as PIXIViewport;
+const canvasContext = useCanvasContextStore();
+
+const onViewportMounted = (viewport: { el: PIXIViewport }) => {
+  const pixiviewport = viewport.el;
   pixiviewport.moveCenter(viewportSize / 2, viewportSize / 2);
   pixiviewport
     .drag()
@@ -95,6 +101,30 @@ const onViewportMounted = (viewport: any) => {
     .decelerate()
     .clamp({ direction: "all" })
     .clampZoom({ minScale: 0.1, maxScale: 1 });
+
+  pixiviewport.on("rightclick", (event) => {
+    if (event.target !== pixiviewport) return;
+    event.preventDefault();
+    const viewportPos = event.getLocalPosition(pixiviewport);
+    const localPos = { x: viewportPos.x - viewportSize / 2, y: viewportPos.y - viewportSize / 2 };
+    console.log(localPos, event);
+    canvasContext.showContextMenu(localPos.x, localPos.y, event.screenX, event.screenY);
+  });
+  pixiviewport.on("tap", (event) => {
+    if (event.target !== pixiviewport) return;
+    const localPos = event.getLocalPosition(pixiviewport);
+    canvasContext.showCross(localPos.x, localPos.y);
+    if (canvasContext.isTouchDevice) {
+      // На мобильных показываем крестик и активируем раздвижное меню
+      // Здесь же можно триггернуть раздвижное меню через тот же стор
+    } else {
+      // На десктопе обычный левый клик можно игнорировать или сделать то же,
+      // что и правый? По вашему заданию только ПКМ. Оставим пустым.
+    }
+  });
+  pixiviewport.on("pointerdown", () => {
+    canvasContext.hideAll();
+  });
 };
 
 onMounted(() => {
@@ -106,7 +136,7 @@ onMounted(() => {
 const visibleBlocks = computed(() => {
   return store.blocks.filter((block) => {
     const floor = store.layer - block.layer;
-    return floor >= block.min_floor && floor <= block.max_floor;
+    return floor >= (block.min_floor ?? 0) && floor <= (block.max_floor ?? 0);
   });
 });
 

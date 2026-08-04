@@ -1,11 +1,6 @@
 <script lang="ts" setup>
 import { PASSAGE_WIDTH, PART_SIZE, getPassagePosition, GAP } from "@/const/rendering";
-import {
-  BlockDirections,
-  type BlockDirection,
-  type FlightData,
-  type FlightType,
-} from "@/stores/blocks";
+import { BlockDirections, type BlockDirection, type FlightData } from "@/types/block";
 import type { ColorSource, Graphics } from "pixi.js";
 
 const props = defineProps<{

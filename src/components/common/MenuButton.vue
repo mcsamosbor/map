@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import Icon from "./Icon.vue";
 
-const props = defineProps<{
-  iconName: string;
-  iconSize: [number, number];
+defineProps<{
+  iconName?: string;
+  iconSize?: [number, number];
   active?: boolean;
   enabled?: boolean;
 }>();
@@ -14,7 +14,7 @@ const emit = defineEmits<{
 
 <template>
   <button class="menu-button" :class="{ active: active, enabled: enabled }" @click="emit('click')">
-    <Icon :name="iconName" :size="iconSize"></Icon>
+    <slot><Icon v-if="iconName && iconSize" :name="iconName" :size="iconSize"></Icon></slot>
   </button>
 </template>
 <style>

@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { PART_SIZE } from "@/const/rendering";
-import type { FlightStatus, FlightType } from "@/stores/blocks";
 import type { ColorSource, Graphics } from "pixi.js";
 
 const props = defineProps<{

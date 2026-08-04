@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PlaceData, PlaceType } from "@/stores/blocks";
+import type { PlaceData, PlaceType } from "@/types/block";
 import Icon from "../common/Icon.vue";
 import ValueInput from "./ValueInput.vue";
 import { computed } from "vue";

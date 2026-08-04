@@ -2,7 +2,7 @@
 import ArrowInput from "./ArrowInput.vue";
 
 const value = defineModel<number>();
-const props = defineProps<{
+defineProps<{
   label: string;
   enabled?: boolean;
 }>();

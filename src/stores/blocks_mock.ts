@@ -14,7 +14,7 @@ import {
   type FlightData,
   type PassagesData,
   type PlaceData,
-} from "./blocks";
+} from "@/types/block";
 
 const randomInt = (min: number, max: number): number =>
   Math.round(Math.random() * (max - min)) + min;

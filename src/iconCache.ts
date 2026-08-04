@@ -1,4 +1,4 @@
-import { Graphics, GraphicsContext, type Path } from "pixi.js";
+import { Graphics, GraphicsContext } from "pixi.js";
 
 const iconsCache = new Map<string, GraphicsContext>();
 

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { GAP, PART_SIZE, PASSAGE_WIDTH } from "@/const/rendering";
-import type { ColorSource, Graphics } from "pixi.js";
+import type { Graphics } from "pixi.js";
 
 const props = defineProps<{ cell: [number, number]; type: TransitionType }>();
 const emit = defineEmits<{

@@ -2,6 +2,7 @@
 import { useBlocksStore } from "@/stores/blocks";
 import Slider from "./slider/Slider.vue";
 import PixiMap from "./PixiMap.vue";
+import ContextMenu from "./ContextMenu.vue";
 
 const store = useBlocksStore();
 
@@ -23,6 +24,7 @@ const store = useBlocksStore();
     <div class="slider">
       <Slider v-model="store.layer" :min="-15" :max="15" :step="1"></Slider>
     </div>
+    <ContextMenu></ContextMenu>
   </div>
 </template>
 <style lang="scss" scoped>

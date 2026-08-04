@@ -1,3 +1,9 @@
+export const nextValue = <T>(list: readonly T[], currentValue: T) => {
+  const currentIndex = list.indexOf(currentValue) ?? -1;
+  const nextIndex = (currentIndex + 1) % list.length;
+  return list[nextIndex]!;
+};
+
 export class NestedMap2<K1, K2, V> {
   private data = new Map<K1, Map<K2, V>>();
 
