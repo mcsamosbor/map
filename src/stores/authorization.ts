@@ -46,7 +46,7 @@ export const useAuthorization = defineStore("authorization", {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "discord",
         options: {
-          redirectTo: window.location.origin, // куда после входа
+          redirectTo: window.location.origin + import.meta.env.BASE_URL, // куда после входа
         },
       });
 
