@@ -152,23 +152,21 @@ const possibleTransitions = computed(() => {
   for (const block of visibleBlocks.value) {
     const floor = store.layer - block.layer;
     const floors_data = block.floors_data?.[floor];
-    if (floors_data) {
-      for (const passagePosition of PassagePositions) {
-        const passageType = validatePassage(
-          floors_data.passages_data?.[passagePosition],
-          passagePosition,
-        );
-        if (passageType !== "noway") {
-          const blockId = block.id;
-          const blockX = block.position_x;
-          const blockY = -block.position_y;
-          const transitionPos = transitionPositions[passagePosition][block.direction];
-          const transitionX = blockX * 2 + transitionPos[0];
-          const transitionY = blockY * 2 + transitionPos[1];
-          const list = transitionsInfo.get(transitionX, transitionY) ?? [];
-          list.push({ blockId, floor, pos: passagePosition, type: passageType });
-          transitionsInfo.set(transitionX, transitionY, list);
-        }
+    for (const passagePosition of PassagePositions) {
+      const passageType = validatePassage(
+        floors_data?.passages_data?.[passagePosition],
+        passagePosition,
+      );
+      if (passageType !== "noway") {
+        const blockId = block.id;
+        const blockX = block.position_x;
+        const blockY = -block.position_y;
+        const transitionPos = transitionPositions[passagePosition][block.direction];
+        const transitionX = blockX * 2 + transitionPos[0];
+        const transitionY = blockY * 2 + transitionPos[1];
+        const list = transitionsInfo.get(transitionX, transitionY) ?? [];
+        list.push({ blockId, floor, pos: passagePosition, type: passageType });
+        transitionsInfo.set(transitionX, transitionY, list);
       }
     }
   }
