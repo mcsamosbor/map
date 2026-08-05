@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
 import { useAuthorization } from "./stores/authorization.ts";
-import View from "./views/View.vue";
+import View from "./views/MainView.vue";
 
 const authorization = useAuthorization();
 let unsubscribe: () => void;
