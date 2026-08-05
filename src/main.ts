@@ -39,6 +39,8 @@ app.directive("hide", vHide);
 app.use(createPinia());
 app.use(router);
 
+await fetch("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,700;1,700&display=swap");
+
 export const repoManager = new RepositoryManager();
 
 repoManager.changeRepositories("supabase");
