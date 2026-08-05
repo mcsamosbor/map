@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MainCanvas from "@/components/canvas/MainCanvas.vue";
+import BlockCard from "@/components/card/BlockCard.vue";
 import MenuButton from "@/components/common/MenuButton.vue";
 import { repoManager } from "@/main";
 import { useAuthorization } from "@/stores/authorization";
@@ -29,7 +30,6 @@ const blocksStore = useBlocksStore();
           <a href="https://discord.gg/XcrkVjrSUz">
             <MenuButton icon-name="discord" :icon-size="[24, 24]" active></MenuButton>
           </a>
-
           <MenuButton
             v-if="authorization.isEditor"
             icon-name="edit"
@@ -51,6 +51,11 @@ const blocksStore = useBlocksStore();
           <!-- <MenuButton icon-name="profile"></MenuButton> -->
           <!-- тут основные кнопки: профиль, инфо, закладки -->
         </div>
+        <BlockCard
+          v-if="blocksStore.selectedBlockId"
+          :block-id="blocksStore.selectedBlockId"
+          @close="() => (blocksStore.selectedBlockId = undefined)"
+        ></BlockCard>
       </div>
     </div>
   </div>
@@ -75,6 +80,7 @@ const blocksStore = useBlocksStore();
   flex-direction: column;
   padding: 10px;
   z-index: 5;
+  flex: 0;
 }
 
 .menu-content {
@@ -84,6 +90,7 @@ const blocksStore = useBlocksStore();
   background-color: var(--bg-panel-background);
   padding: 10px;
   flex-direction: column;
+  flex: 0;
 }
 
 .buttons {

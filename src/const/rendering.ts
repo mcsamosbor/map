@@ -132,7 +132,7 @@ export const getPassagePosition = (cellX: number, cellY: number): [number, numbe
 };
 
 export const isVertical = (direction: BlockDirection) => {
-  return direction === "up" || direction === "down";
+  return direction === "left" || direction === "right";
 };
 
 export const blockTypeColors: { [type in BlockType]: ColorSource } = {
