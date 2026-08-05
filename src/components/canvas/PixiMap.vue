@@ -21,7 +21,7 @@
         :world-width="viewportSize"
         :world-height="viewportSize"
       >
-        <Container :x="viewportSize / 2" :y="viewportSize / 2">
+        <Container v-if="!store.loading" :x="viewportSize / 2" :y="viewportSize / 2">
           <Block v-for="block in visibleBlocks" :block="block" :key="`block_${block.id}`"></Block>
           <template v-if="store.isEditing"
             ><BlockTransition
