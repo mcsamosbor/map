@@ -74,7 +74,7 @@ const handleBlur = (item: PlaceData) => {
 </script>
 
 <template>
-  <div class="place-input">
+  <div v-if="filteredItems.length > 0 || enabled" class="place-input">
     <Icon :name="what" :size="size" />
     <ValueInput
       v-for="({ item, value }, index) in filteredItems"

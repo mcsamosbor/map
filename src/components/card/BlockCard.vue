@@ -386,6 +386,83 @@ const safePlaces = computed(
         :enabled="isEditing"
       ></PlacesInput>
     </div>
+    <span class="line"></span>
+    <div class="places-row">
+      <PlacesInput
+        :what="'laundry'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'shower'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'toilet'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'postal'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'gym'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'overview'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+    </div>
+    <div class="places-row">
+      <PlacesInput
+        :what="'racing'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'hockey'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'spleef'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'pool'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'warehouse'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+      <PlacesInput
+        :what="'gallery'"
+        :size="[24, 24]"
+        v-model="blockData.places"
+        :enabled="isEditing"
+      ></PlacesInput>
+    </div>
   </div>
 </template>
 <style lang="scss" scoped>
