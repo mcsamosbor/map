@@ -25,7 +25,7 @@
           <Block v-for="block in visibleBlocks" :block="block" :key="`block_${block.id}`"></Block>
           <template v-if="store.isEditing"
             ><BlockTransition
-              v-for="{ cell: [cellX, cellY], info } in possibleTransitions"
+              v-for="[cellX, cellY, info] in possibleTransitions"
               :key="`possible_transition_${cellX}_${cellY}`"
               :cell="[cellX, cellY]"
               @click="createTransition(cellX, cellY, info)"
@@ -50,6 +50,7 @@
 import { ref, onMounted, useTemplateRef, computed } from "vue";
 import { Viewport as PIXIViewport } from "pixi-viewport";
 import {
+  displayFloorToIndex,
   PassagePositions,
   validatePassage,
   type BlockData,
@@ -59,10 +60,9 @@ import {
 } from "@/types/block";
 import { Application } from "vue3-pixi";
 import Block from "../pixi/block/DisplayBlock.vue";
-import { transitionPositions } from "@/const/rendering.ts";
 import BlockTransition from "../pixi/block/Transition.vue";
 import { useTransitionsStore } from "@/stores/transitions.ts";
-import { NestedMap2 } from "@/utils.ts";
+import { NestedMap3 } from "@/utils.ts";
 import { useBlocksStore } from "@/stores/blocks";
 import { getTransitionsCell } from "@/types/transition.ts";
 import { useCanvasContextStore } from "@/stores/canvasContext.ts";
@@ -136,62 +136,99 @@ onMounted(() => {
 const visibleBlocks = computed(() => {
   return store.blocks.filter((block) => {
     const floor = store.layer - block.layer;
-    return floor >= (block.min_floor ?? 0) && floor <= (block.max_floor ?? 0);
+    return floor >= (block.min_floor ?? 0) && floor <= (block.max_floor ?? 0); // TODO fix to use real floor indexes
   });
 });
 
-type transitionCellInfo = {
+type possibleTransitionInfo = {
   blockId: BlockUid;
-  floor: number;
+  floorIdx: number;
+  layer: number;
   pos: PassagePosition;
   type: PassageType;
 };
 
-const possibleTransitions = computed(() => {
-  const transitionsInfo = new NestedMap2<number, number, transitionCellInfo[]>();
-  for (const block of visibleBlocks.value) {
-    const floor = store.layer - block.layer;
-    const floors_data = block.floors_data?.[floor];
-    for (const passagePosition of PassagePositions) {
-      const passageType = validatePassage(
-        floors_data?.passages_data?.[passagePosition],
-        passagePosition,
-      );
-      if (passageType !== "noway") {
-        const blockId = block.id;
-        const blockX = block.position_x;
-        const blockY = -block.position_y;
-        const transitionPos = transitionPositions[passagePosition][block.direction];
-        const transitionX = blockX * 2 + transitionPos[0];
-        const transitionY = blockY * 2 + transitionPos[1];
-        const list = transitionsInfo.get(transitionX, transitionY) ?? [];
-        list.push({ blockId, floor, pos: passagePosition, type: passageType });
-        transitionsInfo.set(transitionX, transitionY, list);
+const allTransitionsData = computed(() => {
+  const allTransitons = new NestedMap3<number, number, number, possibleTransitionInfo[]>(); // layer, x, y,
+  const blocks = store.blocks;
+  for (const block of blocks) {
+    const minDisplayFloor = block.min_floor ?? 0;
+    const maxDisplayFloor = block.max_floor ?? 0;
+    const minFloorIdx = displayFloorToIndex(minDisplayFloor, block);
+    const maxFloorIdx = displayFloorToIndex(maxDisplayFloor, block);
+    for (let floor = minFloorIdx; floor <= maxFloorIdx; floor++) {
+      const layer = block.layer + floor;
+      for (const passagePosition of PassagePositions) {
+        const floors_data = block.floors_data?.[floor];
+        const passageType = validatePassage(
+          floors_data?.passages_data?.[passagePosition],
+          passagePosition,
+        );
+        const [transitionX, transitionY] = getTransitionsCell(block, passagePosition);
+        if (
+          passageType !== "noway" &&
+          !transitionsStore.mappedTransitions.get(layer, transitionX, transitionY)
+        ) {
+          let toLayer: number;
+          if (passageType === "stairs_down") {
+            toLayer = layer - 1;
+          } else if (passageType === "stairs_up") {
+            toLayer = layer + 1;
+          } else {
+            toLayer = layer;
+          }
+          const list = allTransitons.get(toLayer, transitionX, transitionY) ?? [];
+          const data = {
+            blockId: block.id,
+            floorIdx: floor,
+            layer: toLayer,
+            pos: passagePosition,
+            type: passageType,
+          };
+          list.push(data);
+          allTransitons.set(toLayer, transitionX, transitionY, list);
+          if (passageType === "stairs_down" || passageType === "stairs_up") {
+            const anotherList = allTransitons.get(layer, transitionX, transitionY) ?? [];
+            anotherList.push(data);
+            allTransitons.set(layer, transitionX, transitionY, anotherList);
+          }
+        }
       }
     }
   }
-  const filtered: { cell: [number, number]; info: transitionCellInfo[] }[] = [];
+  return allTransitons;
+});
 
-  for (const [cellX, cellY, item] of transitionsInfo) {
-    if (item.length < 2) continue;
-
-    const layer = store.layer;
-    if (transitionsStore.mappedTransitions.get(layer, cellX, cellY)) continue;
-
-    filtered.push({ cell: [cellX, cellY], info: item });
-  }
-
-  return filtered;
+const possibleTransitions = computed(() => {
+  const layer = store.layer;
+  const allTransitions = allTransitionsData.value;
+  const layerTransitions = allTransitions.getInner(layer);
+  const result = [...(layerTransitions?.entries() ?? [])].filter(([, , infos]) => {
+    return !!infos.find((data1) => {
+      const layer = data1.layer;
+      return !!infos.find((data2) => {
+        if (data2 === data1) return;
+        return data2.layer === layer;
+      });
+    });
+  });
+  return result;
 });
 
 const transitionsStore = useTransitionsStore();
 
 const existsTransitions = computed(() => {
-  return transitionsStore.transitions
+  const exists = transitionsStore.transitions
     .map((transition) => {
       const block = store.getBlock(transition.from_block_id);
-      if (!block) return;
+      const block2 = store.getBlock(transition.to_block_id);
+      if (!block || !block2) return;
       const position = transition.from_position;
+      const floor = transition.from_floor;
+      const layer = block.layer + floor;
+      const floor2 = transition.to_floor;
+      const layer2 = block2.layer + floor2;
+      if (layer !== store.layer && layer2 !== store.layer) return;
       const cell = getTransitionsCell(block, position);
       return {
         block,
@@ -200,20 +237,20 @@ const existsTransitions = computed(() => {
       };
     })
     .filter((item) => item !== undefined);
+  return exists;
 });
 
-const createTransition = (cellX: number, cellY: number, info: transitionCellInfo[]) => {
+const createTransition = (cellX: number, cellY: number, info: possibleTransitionInfo[]) => {
   if (!store.isEditing) return;
   const from = info[0];
   const to = info[1];
   if (!from || !to) return;
   transitionsStore.addTransition({
-    id: Math.floor(Math.random() * 100000),
     from_block_id: from.blockId,
-    from_floor: from.floor,
+    from_floor: from.floorIdx,
     from_position: from.pos,
     to_block_id: to.blockId,
-    to_floor: to.floor,
+    to_floor: to.floorIdx,
     to_position: to.pos,
   });
 };

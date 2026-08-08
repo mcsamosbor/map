@@ -140,3 +140,22 @@ export const validatePassage = (
   if (type === undefined) return "noway";
   return type;
 };
+
+export const displayFloorToIndex = (displayFloor: number, block: BlockData) => {
+  const doubleFloors = Object.entries(block.floors_data ?? {}).reduce<number>(
+    (prevCount: number, [floor, floorData]) => {
+      const parsedFloor = parseInt(floor);
+      const isCurrentFloorPositive = displayFloor > 0;
+      const isParsedFloorPositive = parsedFloor > 0;
+      if (isCurrentFloorPositive !== isParsedFloorPositive) return prevCount;
+      const isNeededFloor =
+        displayFloor > 0 ? parsedFloor < displayFloor : parsedFloor > displayFloor;
+      if (floorData.is_double && isNeededFloor) {
+        return prevCount + 1;
+      }
+      return prevCount;
+    },
+    0,
+  );
+  return displayFloor - doubleFloors;
+};

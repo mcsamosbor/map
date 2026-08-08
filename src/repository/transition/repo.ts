@@ -12,7 +12,7 @@ export interface TransitionRepository {
   destroy(): void;
 
   /** Добавить новый переход */
-  addTransition(data: TransitionData): Promise<void>;
+  addTransition(data: Omit<TransitionData, "id">): Promise<void>;
 
   /** Удалить переход по id */
   removeTransition(transitionId: TransitionId): Promise<void>;

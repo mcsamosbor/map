@@ -82,7 +82,7 @@ export const useTransitionsStore = defineStore("transitions", {
 
     // ---- Методы работы с данными ----
 
-    async addTransition(data: TransitionData) {
+    async addTransition(data: Omit<TransitionData, "id">) {
       if (!this.repository) throw new Error("Repository not set");
       await this.repository.addTransition(data);
     },

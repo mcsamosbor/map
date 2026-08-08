@@ -15,7 +15,7 @@ export class MockBlockRepository implements BlockRepository {
 
   async init(store: BlocksStore): Promise<void> {
     this.store = store;
-    const blocks = this.initialBlocks ?? generateBlocks(500);
+    const blocks = this.initialBlocks ?? generateBlocks(600);
     this.store.blocks = blocks;
     this.nextId = Math.max(0, ...blocks.map((b) => b.id)) + 1;
   }
@@ -33,7 +33,6 @@ export class MockBlockRepository implements BlockRepository {
   async updateBlock(block: BlockData): Promise<void> {
     const index = this.store.blocks.findIndex((b) => b.id === block.id);
     if (index === -1) throw new Error(`Block ${block.id} not found`);
-    this.store.blocks[index] = { ...block };
   }
 
   async deleteBlock(id: BlockUid): Promise<void> {

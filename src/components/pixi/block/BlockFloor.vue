@@ -129,7 +129,20 @@ const boxShadowFilter = computed(
     }),
 );
 
-const textStyle = { fill: "white", fontSize: 36, fontWeight: "600", fontFamily: "Roboto" } as const;
+const nameTextStyle = {
+  fill: "white",
+  fontSize: 36,
+  fontWeight: "600",
+  fontFamily: "Roboto",
+} as const;
+const floorTextStyle = computed(() => {
+  return {
+    fill: "white",
+    fontSize: getSubFloor(props.floor) === undefined ? 36 : 28,
+    fontWeight: "600",
+    fontFamily: "Roboto",
+  } as const;
+});
 
 const rIcon = (path: string) => {
   return path.replaceAll(/currentColor/g, "#FFFFFF");
@@ -214,7 +227,7 @@ const hasSafePlace = computed(() => {
           :anchor="{ x: 0.5, y: 0.5 }"
           :x="PART_SIZE / 2"
           :y="PART_SIZE / 2 - (block.is_pipe ? 0 : 25)"
-          :style="textStyle"
+          :style="nameTextStyle"
         ></Text>
         <Text
           v-if="!block.is_pipe"
@@ -222,7 +235,7 @@ const hasSafePlace = computed(() => {
           :anchor="{ x: 0.5, y: 0.5 }"
           :x="PART_SIZE / 2"
           :y="PART_SIZE / 2 + 25"
-          :style="textStyle"
+          :style="floorTextStyle"
         ></Text>
       </Container>
     </Part>

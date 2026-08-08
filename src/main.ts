@@ -32,14 +32,25 @@ renderer.use({
   },
 });
 
+async function loadFonts() {
+  try {
+    await Promise.race([
+      Promise.all([document.fonts.load("600 36px Roboto"), document.fonts.load("400 36px Roboto")]),
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]);
+  } catch {
+    // Если что-то пошло не так, продолжаем без ожидания
+  }
+}
+
+await loadFonts();
+
 const app = createApp(App);
 
 app.directive("hide", vHide);
 
 app.use(createPinia());
 app.use(router);
-
-await fetch("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,700;1,700&display=swap");
 
 export const repoManager = new RepositoryManager();
 
