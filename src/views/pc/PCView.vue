@@ -23,7 +23,7 @@ const blocksStore = useBlocksStore();
             active
             @click="authorization.signInDiscord()"
           ></MenuButton>
-          <MenuButton icon-name="info" :icon-size="[24, 24]" active></MenuButton>
+          <!-- <MenuButton icon-name="info" :icon-size="[24, 24]" active></MenuButton> -->
           <a href="https://github.com/mcsamosbor/map">
             <MenuButton icon-name="github" :icon-size="[24, 24]" active></MenuButton>
           </a>

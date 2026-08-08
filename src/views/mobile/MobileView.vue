@@ -28,12 +28,15 @@ const authorization = useAuthorization();
           active
           @click="authorization.signInDiscord()"
         ></MenuButton>
-        <MenuButton icon-name="info" :icon-size="[24, 24]" active></MenuButton>
+        <!-- <MenuButton icon-name="info" :icon-size="[24, 24]" active></MenuButton> -->
         <a href="https://github.com/mcsamosbor/map">
           <MenuButton icon-name="github" :icon-size="[24, 24]" active></MenuButton>
         </a>
         <a href="https://discord.gg/XcrkVjrSUz">
           <MenuButton icon-name="discord" :icon-size="[24, 24]" active></MenuButton>
+        </a>
+        <a href="https://www.donationalerts.com/r/apxutechtop">
+          <MenuButton icon-name="donation_alerts" :icon-size="[24, 24]" active></MenuButton>
         </a>
         <MenuButton
           v-if="authorization.isEditor"
