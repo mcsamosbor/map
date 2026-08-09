@@ -89,7 +89,7 @@ const changePosition = (x: number, y: number) => {
 
 const authorization = useAuthorization();
 
-const changeFlight = (what: "left_flight" | "right_flight") => {
+const changeFlight = (what: "left_flight" | "right_flight" | "middle_flight") => {
   if (!blockData.value || !isEditing.value) return;
   blockData.value[what] ??= { type: "stairs", status: "free" };
   blockData.value[what].type = nextValue(FlightTypes, blockData.value[what].type);
@@ -165,40 +165,50 @@ const safePlaces = computed(
           </div>
         </div>
         <div class="flights-info">
-          <div class="left-flight">
-            <div class="left-flight-button">
-              <Button
-                v-show="isEditing"
-                name="arrow_left"
-                :size="[13.2, 22]"
-                :enabled="isEditing"
-                @click="changeIsMiddleFlight"
-              ></Button>
-            </div>
-            <Icon :style="{ rotate: '-90deg' }" name="circle_up" :size="[18, 18]"></Icon>
-            <FlightDisplay
-              :type="blockData.left_flight?.type ?? 'ladder_elevator'"
+          <div class="left-flight-button">
+            <Button
+              v-show="isEditing"
+              name="arrow_left"
+              :size="[13.2, 22]"
               :enabled="isEditing"
-              @click="changeFlight('left_flight')"
+              @click="changeIsMiddleFlight"
+            ></Button>
+          </div>
+          <div v-if="blockData.is_middle_flight" class="middle-flight">
+            <FlightDisplay
+              :type="blockData.middle_flight?.type ?? 'ladder_elevator'"
+              :enabled="isEditing"
+              @click="changeFlight('middle_flight')"
             ></FlightDisplay>
           </div>
-          <div class="right-flight">
-            <FlightDisplay
-              :type="blockData.right_flight?.type ?? 'stairs'"
-              :enabled="isEditing"
-              @click="changeFlight('right_flight')"
-            ></FlightDisplay>
-            <Icon :style="{ rotate: '90deg' }" name="circle_up" :size="[18, 18]"></Icon>
-            <div class="right-flight-button">
-              <Button
-                v-show="isEditing"
-                name="arrow_left"
-                :size="[13.2, 22]"
+          <div v-else class="side-flights">
+            <div class="left-flight">
+              <Icon :style="{ rotate: '-90deg' }" name="circle_up" :size="[18, 18]"></Icon>
+              <FlightDisplay
+                :type="blockData.left_flight?.type ?? 'ladder_elevator'"
                 :enabled="isEditing"
-                @click="changeIsMiddleFlight"
-                :icon-style="{ rotate: '180deg' }"
-              ></Button>
+                @click="changeFlight('left_flight')"
+              ></FlightDisplay>
             </div>
+            <div class="right-flight">
+              <FlightDisplay
+                :type="blockData.right_flight?.type ?? 'stairs'"
+                :enabled="isEditing"
+                @click="changeFlight('right_flight')"
+              ></FlightDisplay>
+              <Icon :style="{ rotate: '90deg' }" name="circle_up" :size="[18, 18]"></Icon>
+            </div>
+          </div>
+
+          <div class="right-flight-button">
+            <Button
+              v-show="isEditing"
+              name="arrow_left"
+              :size="[13.2, 22]"
+              :enabled="isEditing"
+              @click="changeIsMiddleFlight"
+              :icon-style="{ rotate: '180deg' }"
+            ></Button>
           </div>
         </div>
       </div>
@@ -595,8 +605,18 @@ const safePlaces = computed(
   display: flex;
 }
 
+.side-flights {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  padding-right: 5px;
+  padding-left: 5px;
+}
+
 .left-flight,
-.right-flight {
+.right-flight,
+.middle-flight {
   display: flex;
   gap: 5px;
 }
