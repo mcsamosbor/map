@@ -21,6 +21,7 @@ const blocksStore = useBlocksStore();
             icon-name="user"
             :icon-size="[28, 28]"
             active
+            :enabled="authorization.logged"
             @click="authorization.signInDiscord()"
           ></MenuButton>
           <!-- <MenuButton icon-name="info" :icon-size="[24, 24]" active></MenuButton> -->
@@ -51,8 +52,19 @@ const blocksStore = useBlocksStore();
             @click="() => repoManager.changeRepositories('supabase')"
             >real</MenuButton
           >
-          <!-- <MenuButton icon-name="profile"></MenuButton> -->
-          <!-- тут основные кнопки: профиль, инфо, закладки -->
+        </div>
+        <div v-if="authorization.logged" class="profile">
+          <div class="user-description">
+            <img class="avatar" :src="authorization.userAvatarUrl" />
+            <span class="username">{{ authorization.username }}</span>
+          </div>
+
+          <MenuButton
+            :icon-name="'cross'"
+            :icon-size="[24, 24]"
+            active
+            @click="authorization.signOut"
+          ></MenuButton>
         </div>
         <BlockCard
           v-if="blocksStore.selectedBlockId"
@@ -92,6 +104,7 @@ const blocksStore = useBlocksStore();
   border-radius: 10px;
   background-color: var(--bg-panel-background);
   padding: 10px;
+  gap: 10px;
   flex-direction: column;
   flex: 0;
 }
@@ -100,5 +113,32 @@ const blocksStore = useBlocksStore();
   display: flex;
   flex-direction: row;
   gap: 10px;
+}
+
+.profile {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-button-color);
+  padding: 5px;
+  border-radius: 5px;
+}
+.user-description {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+}
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 100%;
+}
+.username {
+  font-family: Roboto;
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--str-button-font);
 }
 </style>

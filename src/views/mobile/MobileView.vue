@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import MenuButton from "@/components/common/MenuButton.vue";
 import ExpandableFooter from "./ExpandableFooter.vue";
-import SearchInput from "@/components/common/SearchInput.vue";
+// import SearchInput from "@/components/common/SearchInput.vue";
 
 import { useBlocksStore } from "@/stores/blocks.ts";
 import BlockCard from "@/components/card/BlockCard.vue";
@@ -17,9 +17,8 @@ const authorization = useAuthorization();
   <div class="mobile-view">
     <Canvas></Canvas>
     <ExpandableFooter>
-      <div class="searches">
-        <!-- результат поисков, плавает над канвасом но прицеплен к меню -->
-      </div>
+      <!-- <div class="searches">
+      </div> -->
       <!-- тут поисковая строка и кнопки -->
       <div class="buttons">
         <MenuButton
@@ -59,9 +58,21 @@ const authorization = useAuthorization();
         <!-- <MenuButton icon-name="profile"></MenuButton> -->
         <!-- тут основные кнопки: профиль, инфо, закладки -->
       </div>
-      <SearchInput></SearchInput>
-      <div class="extra-search-buttons">
-        <!-- кнопки фильтры, видны если меню раскрыто -->
+      <!-- <SearchInput></SearchInput> -->
+      <!-- <div class="extra-search-buttons">
+      </div> -->
+      <div v-if="authorization.logged" class="profile">
+        <div class="user-description">
+          <img class="avatar" :src="authorization.userAvatarUrl" />
+          <span class="username">{{ authorization.username }}</span>
+        </div>
+
+        <MenuButton
+          :icon-name="'cross'"
+          :icon-size="[24, 24]"
+          active
+          @click="authorization.signOut"
+        ></MenuButton>
       </div>
       <BlockCard
         v-if="blocksStore.selectedBlockId"
@@ -98,5 +109,32 @@ const authorization = useAuthorization();
 // Дополнительно можно скрыть overflow для footer, если внутри много контента
 .footer {
   overflow-y: auto;
+}
+
+.profile {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-button-color);
+  padding: 5px;
+  border-radius: 5px;
+}
+.user-description {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+}
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 100%;
+}
+.username {
+  font-family: Roboto;
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--str-button-font);
 }
 </style>

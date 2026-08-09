@@ -11,6 +11,9 @@ export const useAuthorization = defineStore("authorization", {
     };
   },
   getters: {
+    logged: (state) => {
+      return state.session !== null;
+    },
     hasAnyRole:
       (state) =>
       (roles: string[]): boolean => {
@@ -18,6 +21,12 @@ export const useAuthorization = defineStore("authorization", {
       },
     isEditor: (state) => {
       return ["editor", "admin"].some((r) => state.roles.includes(r));
+    },
+    username: (state) => {
+      return state.user?.user_metadata.custom_claims.global_name ?? "Unknown";
+    },
+    userAvatarUrl: (state) => {
+      return state.user?.user_metadata.avatar_url;
     },
   },
   actions: {

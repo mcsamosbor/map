@@ -107,7 +107,6 @@ const onViewportMounted = (viewport: { el: PIXIViewport }) => {
     event.preventDefault();
     const viewportPos = event.getLocalPosition(pixiviewport);
     const localPos = { x: viewportPos.x - viewportSize / 2, y: viewportPos.y - viewportSize / 2 };
-    console.log(localPos, event);
     canvasContext.showContextMenu(localPos.x, localPos.y, event.screenX, event.screenY);
   });
   pixiviewport.on("tap", (event) => {

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { CELL_SIZE } from "@/const/rendering";
+import { useAuthorization } from "@/stores/authorization";
 import { useBlocksStore } from "@/stores/blocks";
 import { useCanvasContextStore } from "@/stores/canvasContext";
 
 const canvasContext = useCanvasContextStore();
 
 const blocksStore = useBlocksStore();
+const authorization = useAuthorization();
 const handleCreateBlock = () => {
   if (!canvasContext.worldPos) return;
   const posX = Math.floor(canvasContext.worldPos.x / CELL_SIZE);
@@ -23,7 +25,7 @@ const handleCreateBlock = () => {
 </script>
 <template>
   <div
-    v-if="canvasContext.screenPos"
+    v-if="canvasContext.screenPos && authorization.logged"
     class="context-menu"
     :style="{
       top: `${canvasContext.screenPos.y + 5}px`,
