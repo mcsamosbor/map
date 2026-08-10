@@ -12,8 +12,10 @@ import {
   BlockDirections,
   FlightTypes,
   IsSafePlace,
+  ProfessionPlaces,
   type BlockType,
   type BlockUid,
+  type PlaceType,
 } from "@/types/block";
 import { useAuthorization } from "@/stores/authorization.ts";
 import PlaceInput from "./PlaceInput.vue";
@@ -120,6 +122,45 @@ const safePlaces = computed(
       ?.filter(({ type }) => IsSafePlace(type))
       .map(({ floor }) => floor)
       .sort((a, b) => b - a) ?? [],
+);
+
+const placeTypesExist = (types: readonly PlaceType[]) =>
+  blockData.value?.places?.some(({ type }) => types.includes(type)) ?? false;
+
+const hasRoofFloodBalcony = computed(
+  () =>
+    isEditing.value ||
+    !!blockData.value?.has_roof ||
+    blockData.value?.flood_floor != null ||
+    !!blockData.value?.has_balcony,
+);
+
+const hasProfessions = computed(() => isEditing.value || placeTypesExist(ProfessionPlaces));
+
+const hasEntertainment = computed(
+  () =>
+    isEditing.value ||
+    safePlaces.value.length > 0 ||
+    placeTypesExist(["theatre", "hospital", "party"]),
+);
+
+const hasAmenities = computed(
+  () =>
+    isEditing.value ||
+    placeTypesExist([
+      "laundry",
+      "shower",
+      "toilet",
+      "postal",
+      "gym",
+      "overview",
+      "racing",
+      "hockey",
+      "spleef",
+      "pool",
+      "warehouse",
+      "gallery",
+    ]),
 );
 
 const floodFloor = computed<number | null | string>({
@@ -241,58 +282,70 @@ const floodFloor = computed<number | null | string>({
         <HeaderButton name="path" :size="[20, 20]"></HeaderButton>
       </div>
     </div>
-    <span class="line"></span>
-    <div class="structure-info" v-if="isEditor">
-      <div class="position-info">
-        <PosComponent label="X" :enabled="isEditing" v-model="blockData.position_x"></PosComponent>
-        <PosComponent label="Y" :enabled="isEditing" v-model="blockData.position_y"></PosComponent>
-        <PosComponent label="L" :enabled="isEditing" v-model="blockData.layer"></PosComponent>
+    <template v-if="isEditor">
+      <span class="line"></span>
+      <div class="structure-info">
+        <div class="position-info">
+          <PosComponent
+            label="X"
+            :enabled="isEditing"
+            v-model="blockData.position_x"
+          ></PosComponent>
+          <PosComponent
+            label="Y"
+            :enabled="isEditing"
+            v-model="blockData.position_y"
+          ></PosComponent>
+          <PosComponent label="L" :enabled="isEditing" v-model="blockData.layer"></PosComponent>
+        </div>
+        <div class="rotation-info" :class="{ enabled: isEditing }">
+          <div class="controller-row">
+            <Icon name="circle_up" :size="[30, 30]" @click="changePosition(0, 1)"></Icon>
+          </div>
+          <div class="controller-row">
+            <Icon
+              name="circle_up"
+              :size="[30, 30]"
+              :style="{ rotate: '-90deg' }"
+              @click="changePosition(-1, 0)"
+            ></Icon>
+            <Icon
+              name="v_arrow"
+              :size="[30, 30]"
+              :style="{ rotate: `${directionToDegree[blockData.direction]}deg` }"
+              @click="changeRotation"
+            ></Icon>
+            <Icon
+              name="circle_up"
+              :size="[30, 30]"
+              :style="{ rotate: '90deg' }"
+              @click="changePosition(1, 0)"
+            ></Icon>
+          </div>
+          <div class="controller-row">
+            <Icon
+              name="circle_up"
+              :size="[30, 30]"
+              :style="{ rotate: '180deg' }"
+              @click="changePosition(0, -1)"
+            ></Icon>
+          </div>
+        </div>
+        <div class="type-info">
+          <div class="type-info-item">
+            <Icon name="double_floor" :size="[30, 30]"></Icon>
+            <Checkbox v-model="isDoubleFloor" :enabled="isEditing"></Checkbox>
+          </div>
+          <div class="type-info-item">
+            <Icon name="pipe" :size="[30, 30]"></Icon>
+            <Checkbox v-model="blockData.is_pipe" :enabled="isEditing"></Checkbox>
+          </div>
+        </div>
       </div>
-      <div class="rotation-info" :class="{ enabled: isEditing }">
-        <div class="controller-row">
-          <Icon name="circle_up" :size="[30, 30]" @click="changePosition(0, 1)"></Icon>
-        </div>
-        <div class="controller-row">
-          <Icon
-            name="circle_up"
-            :size="[30, 30]"
-            :style="{ rotate: '-90deg' }"
-            @click="changePosition(-1, 0)"
-          ></Icon>
-          <Icon
-            name="v_arrow"
-            :size="[30, 30]"
-            :style="{ rotate: `${directionToDegree[blockData.direction]}deg` }"
-            @click="changeRotation"
-          ></Icon>
-          <Icon
-            name="circle_up"
-            :size="[30, 30]"
-            :style="{ rotate: '90deg' }"
-            @click="changePosition(1, 0)"
-          ></Icon>
-        </div>
-        <div class="controller-row">
-          <Icon
-            name="circle_up"
-            :size="[30, 30]"
-            :style="{ rotate: '180deg' }"
-            @click="changePosition(0, -1)"
-          ></Icon>
-        </div>
-      </div>
-      <div class="type-info">
-        <div class="type-info-item">
-          <Icon name="double_floor" :size="[30, 30]"></Icon>
-          <Checkbox v-model="isDoubleFloor" :enabled="isEditing"></Checkbox>
-        </div>
-        <div class="type-info-item">
-          <Icon name="pipe" :size="[30, 30]"></Icon>
-          <Checkbox v-model="blockData.is_pipe" :enabled="isEditing"></Checkbox>
-        </div>
-      </div>
-    </div>
-    <span class="line" v-if="isEditor"></span>
+    </template>
+    <template v-if="isEditor">
+      <span class="line"></span>
+    </template>
     <div class="block-type-info">
       <span>Тип блока: </span>
       <Select
@@ -332,170 +385,176 @@ const floodFloor = computed<number | null | string>({
         :enabled="isEditing"
       ></PlaceInput>
     </div>
-    <span class="line"></span>
-    <div class="places-row">
-      <div class="place-input" v-if="blockData.has_roof || isEditing">
-        <Icon :name="'roof'" :size="[18, 15]" />
-        <Checkbox
-          v-if="isEditing"
-          v-model="blockData.has_roof"
+    <template v-if="hasRoofFloodBalcony">
+      <span class="line"></span>
+      <div class="places-row">
+        <div class="place-input" v-if="blockData.has_roof || isEditing">
+          <Icon :name="'roof'" :size="[18, 15]" />
+          <Checkbox
+            v-if="isEditing"
+            v-model="blockData.has_roof"
+            :enabled="isEditing"
+            :mini="true"
+          ></Checkbox>
+          <ValueInput
+            v-else
+            class="place-floor-input"
+            :model-value="blockData.has_roof ? blockData.max_floor : undefined"
+          />
+        </div>
+        <div class="place-input" v-if="blockData.flood_floor != null || isEditing">
+          <Icon :name="'flood'" :size="[18, 15]" />
+          <ValueInput class="place-floor-input" :enabled="isEditing" v-model="floodFloor" />
+        </div>
+        <div class="place-input" v-if="blockData.has_balcony || isEditing">
+          <Icon :name="'balcony'" :size="[17, 18]"></Icon>
+          <Checkbox
+            v-if="isEditing"
+            v-model="blockData.has_balcony"
+            :enabled="isEditing"
+            :mini="true"
+          ></Checkbox>
+        </div>
+      </div>
+    </template>
+    <template v-if="hasProfessions">
+      <span class="line"></span>
+      <div class="professions-row">
+        <PlacesInput
+          :what="'liquidator'"
+          :size="[24, 24]"
+          v-model="blockData.places"
           :enabled="isEditing"
-          :mini="true"
-        ></Checkbox>
-        <ValueInput
-          v-else
-          class="place-floor-input"
-          :model-value="blockData.has_roof ? blockData.max_floor : undefined"
-        />
-      </div>
-      <div class="place-input" v-if="blockData.flood_floor != null || isEditing">
-        <Icon :name="'flood'" :size="[18, 15]" />
-        <ValueInput class="place-floor-input" :enabled="isEditing" v-model="floodFloor" />
-      </div>
-      <div class="place-input" v-if="blockData.has_balcony || isEditing">
-        <Icon :name="'balcony'" :size="[17, 18]"></Icon>
-        <Checkbox
-          v-if="isEditing"
-          v-model="blockData.has_balcony"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'repairman'"
+          :size="[24, 24]"
+          v-model="blockData.places"
           :enabled="isEditing"
-          :mini="true"
-        ></Checkbox>
+        ></PlacesInput>
+        <PlacesInput
+          :what="'cleaner'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'plumber'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
       </div>
-    </div>
-    <span class="line"></span>
-    <div class="professions-row">
-      <PlacesInput
-        :what="'liquidator'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'repairman'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'cleaner'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'plumber'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-    </div>
-    <span class="line"></span>
-    <div class="places-row">
-      <div v-if="safePlaces.length > 0" class="places-input">
-        <Icon name="safe" :size="[24, 24]" />
-        <ValueInput
-          v-for="(value, index) in safePlaces"
-          :key="index"
-          class="place-floor-input"
-          v-bind:model-value="value?.toString()"
-        />
+    </template>
+    <template v-if="hasEntertainment">
+      <span class="line"></span>
+      <div class="places-row">
+        <div v-if="safePlaces.length > 0" class="places-input">
+          <Icon name="safe" :size="[24, 24]" />
+          <ValueInput
+            v-for="(value, index) in safePlaces"
+            :key="index"
+            class="place-floor-input"
+            v-bind:model-value="value?.toString()"
+          />
+        </div>
+        <PlacesInput
+          :what="'theatre'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'hospital'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'party'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
       </div>
-      <PlacesInput
-        :what="'theatre'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'hospital'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'party'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-    </div>
-    <span class="line"></span>
-    <div class="places-row">
-      <PlacesInput
-        :what="'laundry'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'shower'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'toilet'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'postal'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'gym'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'overview'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-    </div>
-    <div class="places-row">
-      <PlacesInput
-        :what="'racing'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'hockey'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'spleef'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'pool'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'warehouse'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-      <PlacesInput
-        :what="'gallery'"
-        :size="[24, 24]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlacesInput>
-    </div>
+    </template>
+    <template v-if="hasAmenities">
+      <span class="line"></span>
+      <div class="amenities-row">
+        <PlacesInput
+          :what="'laundry'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'shower'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'toilet'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'postal'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'gym'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'overview'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'racing'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'hockey'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'spleef'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'pool'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'warehouse'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+        <PlacesInput
+          :what="'gallery'"
+          :size="[24, 24]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlacesInput>
+      </div>
+    </template>
   </div>
 </template>
 <style lang="scss" scoped>
@@ -673,6 +732,19 @@ const floodFloor = computed<number | null | string>({
   flex-direction: row;
   align-items: start;
   justify-content: space-evenly;
+}
+
+.amenities-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: start;
+  gap: 10px;
+
+  > * {
+    flex: 0 0 calc((100% - 50px) / 6);
+  }
 }
 
 .place-input {
