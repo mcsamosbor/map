@@ -584,6 +584,9 @@ const floodFloor = computed<number | null | string>({
   padding: 15px;
   color: var(--str-button-font);
   font-family: Roboto;
+  overflow-y: auto;
+  scrollbar-width: none;
+  min-height: 0;
 }
 
 .header-buttons {

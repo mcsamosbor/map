@@ -124,7 +124,15 @@ const closeCard = async () => {
   padding: 10px;
   gap: 10px;
   flex-direction: column;
-  flex: 0;
+  flex: none;
+  max-height: 100%;
+  overflow: hidden;
+
+  > .block-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
 }
 
 .buttons {
