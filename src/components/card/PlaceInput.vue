@@ -17,15 +17,13 @@ const value = computed({
     const place = places.value?.find((p) => p.type === props.what);
     return place?.floor;
   },
-  set: (newValue: number | undefined | "") => {
+  set: (newValue: string | undefined) => {
     if (!places.value) return;
-    console.log(newValue, places.value);
     const index = places.value.findIndex((p) => p.type === props.what);
     const exists = index !== -1;
-
-    if (newValue !== undefined && newValue !== null && newValue !== "") {
+    const floor = parseInt(newValue ?? "");
+    if (!isNaN(floor)) {
       // Числовое значение задано – обновляем или добавляем запись
-      const floor = Number(newValue);
       if (exists) {
         places.value[index]!.floor = floor;
       } else {
