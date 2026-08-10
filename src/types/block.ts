@@ -117,6 +117,8 @@ export type BlockRawData = {
       };
     };
   };
+
+  editor_info?: string;
 };
 
 export type BlockData = {

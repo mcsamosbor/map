@@ -355,10 +355,16 @@ const floodFloor = computed<number | null | string>({
           </div>
         </div>
       </div>
+      <div class="editor-info">
+        <span class="editor-info-label">Заметка</span>
+        <ValueInput
+          v-model="blockData.editor_info"
+          :enabled="isEditing"
+          class="editor-info-input"
+        ></ValueInput>
+      </div>
     </template>
-    <template v-if="isEditor">
-      <span class="line"></span>
-    </template>
+    <span class="line"></span>
     <div class="block-type-info">
       <span>Тип блока: </span>
       <Select
@@ -738,6 +744,23 @@ const floodFloor = computed<number | null | string>({
   align-items: center;
   justify-content: center;
   font-weight: 600;
+}
+
+.editor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+
+.editor-info-label {
+  font-weight: 600;
+}
+
+.editor-info-input {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 8px;
 }
 
 .places-row {
