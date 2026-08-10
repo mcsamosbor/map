@@ -60,7 +60,7 @@ const blocksStore = useBlocksStore();
           </div>
 
           <MenuButton
-            :icon-name="'cross'"
+            :icon-name="'logout'"
             :icon-size="[24, 24]"
             active
             @click="authorization.signOut"
