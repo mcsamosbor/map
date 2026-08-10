@@ -37,6 +37,10 @@ import safeIcon from "@/assets/icons/block/safe.svg?raw";
 import hospitalIcon from "@/assets/icons/block/hospital.svg?raw";
 import theatreIcon from "@/assets/icons/block/theatre.svg?raw";
 import partyIcon from "@/assets/icons/block/party.svg?raw";
+import circleUpIcon from "@/assets/icons/block/circle_up.svg?raw";
+import circleDownIcon from "@/assets/icons/block/circle_down.svg?raw";
+import roofIcon from "@/assets/icons/block/roof.svg?raw";
+import floodIcon from "@/assets/icons/block/flood.svg?raw";
 import { useBlocksStore } from "@/stores/blocks";
 
 const props = defineProps<{ block: BlockData; floor: number; x?: number; y?: number }>();
@@ -150,6 +154,12 @@ const floorTextStyle = computed(() => {
     fontFamily: "Roboto",
   } as const;
 });
+const floorValueTextStyle = {
+  fill: "white",
+  fontSize: 34,
+  fontWeight: "600",
+  fontFamily: "Roboto",
+} as const;
 
 const rIcon = (path: string) => {
   return path.replaceAll(/currentColor/g, "#FFFFFF");
@@ -330,11 +340,75 @@ const hasSafePlace = computed(() => {
       v-bind="toPos(...getPartPosition(...vSum(floorsPartPositions[block.direction], [0, 0])))"
       :color="mainColor"
     >
+      <template v-if="!block.is_pipe">
+        <Icon
+          v-if="block.max_floor !== undefined"
+          :path="rIcon(circleUpIcon)"
+          :size="34"
+          :x="PART_SIZE / 4 + 5"
+          :y="PART_SIZE / 4"
+        ></Icon>
+        <Text
+          v-if="block.max_floor !== undefined"
+          :text="String(block.max_floor)"
+          :anchor="{ x: 0.5, y: 0.5 }"
+          :x="(PART_SIZE * 3) / 4 - 5"
+          :y="PART_SIZE / 4"
+          :style="floorValueTextStyle"
+        ></Text>
+        <Icon
+          v-if="block.min_floor !== undefined"
+          :path="rIcon(circleDownIcon)"
+          :size="34"
+          :x="PART_SIZE / 4 + 5"
+          :y="(PART_SIZE * 3) / 4"
+        ></Icon>
+        <Text
+          v-if="block.min_floor !== undefined"
+          :text="String(block.min_floor)"
+          :anchor="{ x: 0.5, y: 0.5 }"
+          :x="(PART_SIZE * 3) / 4 - 5"
+          :y="(PART_SIZE * 3) / 4"
+          :style="floorValueTextStyle"
+        ></Text>
+      </template>
     </Part>
     <Part
       v-bind="toPos(...getPartPosition(...vSum(effectsPartPositions[block.direction], [0, 0])))"
       :color="mainColor"
     >
+      <template v-if="!block.is_pipe">
+        <Icon
+          v-if="block.has_roof"
+          :path="rIcon(roofIcon)"
+          :size="34"
+          :x="PART_SIZE / 4 + 5"
+          :y="PART_SIZE / 4"
+        ></Icon>
+        <Text
+          v-if="block.has_roof"
+          :text="String(block.max_floor ?? '')"
+          :anchor="{ x: 0.5, y: 0.5 }"
+          :x="(PART_SIZE * 3) / 4 - 5"
+          :y="PART_SIZE / 4"
+          :style="floorValueTextStyle"
+        ></Text>
+        <Icon
+          v-if="block.flood_floor !== undefined && block.flood_floor !== null"
+          :path="rIcon(floodIcon)"
+          :size="34"
+          :x="PART_SIZE / 4 + 5"
+          :y="(PART_SIZE * 3) / 4"
+        ></Icon>
+        <Text
+          v-if="block.flood_floor !== undefined && block.flood_floor !== null"
+          :text="block.flood_floor"
+          :anchor="{ x: 0.5, y: 0.5 }"
+          :x="(PART_SIZE * 3) / 4 - 5"
+          :y="(PART_SIZE * 3) / 4"
+          :style="floorValueTextStyle"
+        ></Text>
+      </template>
     </Part>
     <Flight
       v-bind="toPos(...getPartPosition(...rightFlightPositions[block.direction]))"

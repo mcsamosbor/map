@@ -337,7 +337,11 @@ const safePlaces = computed(
       </div>
       <div class="place-input" v-if="blockData.flood_floor || isEditing">
         <Icon :name="'flood'" :size="[18, 15]" />
-        <ValueInput class="place-floor-input" :model-value="blockData.flood_floor" />
+        <ValueInput
+          class="place-floor-input"
+          :enabled="isEditing"
+          v-model.number="blockData.flood_floor"
+        />
       </div>
       <div class="place-input" v-if="blockData.has_balcony || isEditing">
         <Icon :name="'balcony'" :size="[17, 18]"></Icon>
