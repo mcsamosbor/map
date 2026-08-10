@@ -121,6 +121,19 @@ const safePlaces = computed(
       .map(({ floor }) => floor)
       .sort((a, b) => b - a) ?? [],
 );
+
+const floodFloor = computed<number | null | string>({
+  get: () => blockData.value?.flood_floor ?? null,
+  set: (newValue) => {
+    if (!blockData.value || !isEditing.value) return;
+    if (newValue === "" || newValue === null || newValue === undefined) {
+      blockData.value.flood_floor = null;
+      return;
+    }
+    const parsed = typeof newValue === "number" ? newValue : Number(newValue);
+    blockData.value.flood_floor = Number.isNaN(parsed) ? null : parsed;
+  },
+});
 </script>
 
 <template>
@@ -335,13 +348,9 @@ const safePlaces = computed(
           :model-value="blockData.has_roof ? blockData.max_floor : undefined"
         />
       </div>
-      <div class="place-input" v-if="blockData.flood_floor || isEditing">
+      <div class="place-input" v-if="blockData.flood_floor != null || isEditing">
         <Icon :name="'flood'" :size="[18, 15]" />
-        <ValueInput
-          class="place-floor-input"
-          :enabled="isEditing"
-          v-model.number="blockData.flood_floor"
-        />
+        <ValueInput class="place-floor-input" :enabled="isEditing" v-model="floodFloor" />
       </div>
       <div class="place-input" v-if="blockData.has_balcony || isEditing">
         <Icon :name="'balcony'" :size="[17, 18]"></Icon>
@@ -382,7 +391,7 @@ const safePlaces = computed(
     </div>
     <span class="line"></span>
     <div class="places-row">
-      <div class="places-input">
+      <div v-if="safePlaces.length > 0" class="places-input">
         <Icon name="safe" :size="[24, 24]" />
         <ValueInput
           v-for="(value, index) in safePlaces"
