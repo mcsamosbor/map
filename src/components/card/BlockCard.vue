@@ -56,11 +56,21 @@ const isDoubleFloor = computed({
   },
 });
 
+const blockType = computed({
+  get: () => blocksStore.getBlock(props.blockId)?.type,
+  set: (newType) => {
+    const block = blocksStore.getBlock(props.blockId);
+    if (block) {
+      block.type = newType;
+    }
+  },
+});
 const blockTypeOptions: { label: string; value: BlockType }[] = [
   { label: "Жилой", value: "residential" },
   { label: "Разрушенный", value: "destroyed" },
   { label: "Мясной", value: "infected" },
   { label: "Ледяной", value: "frozen" },
+  { label: "Грибной", value: "mushroom" },
 ];
 
 const canCreateOptions: { label: string; value: boolean | undefined }[] = [
@@ -273,7 +283,7 @@ const safePlaces = computed(
     <div class="block-type-info">
       <span>Тип блока: </span>
       <Select
-        v-model="blockData.type"
+        v-model="blockType"
         :options="blockTypeOptions"
         :enabled="isEditing"
         placeholder="Выберите..."

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { IsSafePlace, type BlockData, type PassagePosition, type PlaceType } from "@/types/block";
 import type { Graphics } from "pixi.js";
-import { computed } from "vue";
+import { computed, shallowRef, watch } from "vue";
 import Flight from "./BlockFlight.vue";
 import {
   BLOCK_HEIGHT,
@@ -121,12 +121,19 @@ const getFloorText = (floor: number) => {
   return `Эт. ${getDisplayFloor(props.block, floor)}${subText}`;
 };
 
-const boxShadowFilter = computed(
-  () =>
-    new BoxShadowFilter({
-      boxShadow: `0 0 20px 20px ${blockTypeColors[props.block.type ?? "residential"]}`,
-      borderRadius: 10,
-    }),
+const boxShadowFilter = shallowRef(
+  new BoxShadowFilter({
+    boxShadow: `0 0 20px 20px ${blockTypeColors[props.block.type ?? "residential"]}`,
+    borderRadius: 10,
+  }),
+);
+
+watch(
+  () => props.block.type,
+  (newType) => {
+    const color = blockTypeColors[newType ?? "residential"];
+    boxShadowFilter.value.boxShadow = `0 0 20px 20px ${color}`;
+  },
 );
 
 const nameTextStyle = {
@@ -159,7 +166,7 @@ const hasSafePlace = computed(() => {
 <template>
   <Container :x="x" :y="y" @pointertap="emit('click')">
     <graphics @effect="drawBg">
-      <Filter v-if="block.type !== 'residential'" :is="boxShadowFilter"></Filter>
+      <Filter :is="boxShadowFilter"></Filter>
     </graphics>
     <Flight
       v-bind="toPos(...getPartPosition(...leftFlightPositions[block.direction]))"

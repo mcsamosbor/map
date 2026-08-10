@@ -1,7 +1,7 @@
 export const BlockDirections = ["up", "right", "down", "left"] as const;
 export type BlockDirection = (typeof BlockDirections)[number];
 
-export const BlockTypes = ["residential", "frozen", "infected", "destroyed"] as const;
+export const BlockTypes = ["residential", "frozen", "infected", "destroyed", "mushroom"] as const;
 export type BlockType = (typeof BlockTypes)[number];
 
 export const FlightTypes = ["stairs", "elevator", "ladder_elevator"] as const;

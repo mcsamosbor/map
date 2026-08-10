@@ -140,6 +140,7 @@ export const blockTypeColors: { [type in BlockType]: ColorSource } = {
   frozen: "#0051FF",
   infected: "#FF0000",
   destroyed: "#EEFF00",
+  mushroom: "#ff7300",
 };
 
 export const rIcon = (path: string) => {
