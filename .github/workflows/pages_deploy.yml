@@ -1,7 +1,9 @@
 name: Deploy to GitHub Pages
 
 on:
-  workflow_dispatch:          # ручной запуск (можно добавить push, если нужно)
+  push:
+    bracnhes:
+      - master
 
 permissions:
   contents: write             # необходимо для записи в ветку gh-pages
