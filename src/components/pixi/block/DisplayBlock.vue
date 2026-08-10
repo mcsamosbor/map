@@ -15,7 +15,11 @@ const blocksStore = useBlocksStore();
 
 const floor = computed(() => blocksStore.layer - (props.block.layer ?? 0));
 
-const selectBlock = () => {
+const selectBlock = async () => {
+  // Смена выделенного блока — отправляем изменения предыдущего блока на сервер
+  if (blocksStore.selectedBlockId && blocksStore.selectedBlockId !== props.block.id) {
+    await blocksStore.flushBlock(blocksStore.selectedBlockId);
+  }
   blocksStore.selectedBlockId = props.block.id;
 };
 

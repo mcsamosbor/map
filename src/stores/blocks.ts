@@ -74,6 +74,26 @@ export const useBlocksStore = defineStore("blocks", {
       await Promise.all(promises);
       this.editedBlocks.clear();
     },
+    /**
+     * Пометить блок как изменённый (локально, без отправки на сервер).
+     * Используется при редактировании карточки блока.
+     */
+    markBlockEdited(blockId: BlockUid) {
+      this.editedBlocks.add(blockId);
+    },
+    /**
+     * Отправить изменения конкретного блока на сервер.
+     * Вызывается при выключении редактирования карточки, смене выбранного
+     * блока или закрытии карточки.
+     */
+    async flushBlock(blockId: BlockUid) {
+      if (!this.repository) return;
+      if (!this.editedBlocks.has(blockId)) return;
+      const block = this.getBlock(blockId);
+      if (!block) return;
+      await this.repository.updateBlock(block);
+      this.editedBlocks.delete(blockId);
+    },
     async toggleEditing() {
       this.isEditing = !this.isEditing;
       if (this.isEditing) {

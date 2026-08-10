@@ -5,9 +5,27 @@ import MenuButton from "@/components/common/MenuButton.vue";
 import { repoManager } from "@/main";
 import { useAuthorization } from "@/stores/authorization";
 import { useBlocksStore } from "@/stores/blocks";
+import { useTransitionsStore } from "@/stores/transitions";
 
 const authorization = useAuthorization();
 const blocksStore = useBlocksStore();
+const transitionsStore = useTransitionsStore();
+
+const toggleGlobalEditing = async () => {
+  blocksStore.isEditing = !blocksStore.isEditing;
+  if (!blocksStore.isEditing) {
+    // Выключаем режим общего редактирования — отправляем накопленные изменения на сервер
+    await blocksStore.endEditing();
+    await transitionsStore.flushPending();
+  }
+};
+
+const closeCard = async () => {
+  if (blocksStore.selectedBlockId) {
+    await blocksStore.flushBlock(blocksStore.selectedBlockId);
+  }
+  blocksStore.selectedBlockId = undefined;
+};
 </script>
 
 <template>
@@ -40,7 +58,7 @@ const blocksStore = useBlocksStore();
             :icon-size="[20, 20]"
             active
             :enabled="blocksStore.isEditing"
-            @click="() => (blocksStore.isEditing = !blocksStore.isEditing)"
+            @click="toggleGlobalEditing"
           ></MenuButton>
           <MenuButton
             v-if="authorization.isEditor"
@@ -69,7 +87,7 @@ const blocksStore = useBlocksStore();
         <BlockCard
           v-if="blocksStore.selectedBlockId"
           :block-id="blocksStore.selectedBlockId"
-          @close="() => (blocksStore.selectedBlockId = undefined)"
+          @close="closeCard"
         ></BlockCard>
       </div>
     </div>

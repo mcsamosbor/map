@@ -4,13 +4,31 @@ import ExpandableFooter from "./ExpandableFooter.vue";
 // import SearchInput from "@/components/common/SearchInput.vue";
 
 import { useBlocksStore } from "@/stores/blocks.ts";
+import { useTransitionsStore } from "@/stores/transitions";
 import BlockCard from "@/components/card/BlockCard.vue";
 import { useAuthorization } from "@/stores/authorization.ts";
 import Canvas from "@/components/canvas/MainCanvas.vue";
 import { repoManager } from "@/main.ts";
 
 const blocksStore = useBlocksStore();
+const transitionsStore = useTransitionsStore();
 const authorization = useAuthorization();
+
+const toggleGlobalEditing = async () => {
+  blocksStore.isEditing = !blocksStore.isEditing;
+  if (!blocksStore.isEditing) {
+    // Выключаем режим общего редактирования — отправляем накопленные изменения на сервер
+    await blocksStore.endEditing();
+    await transitionsStore.flushPending();
+  }
+};
+
+const closeCard = async () => {
+  if (blocksStore.selectedBlockId) {
+    await blocksStore.flushBlock(blocksStore.selectedBlockId);
+  }
+  blocksStore.selectedBlockId = undefined;
+};
 </script>
 
 <template>
@@ -43,7 +61,7 @@ const authorization = useAuthorization();
           :icon-size="[20, 20]"
           active
           :enabled="blocksStore.isEditing"
-          @click="() => (blocksStore.isEditing = !blocksStore.isEditing)"
+          @click="toggleGlobalEditing"
         ></MenuButton>
         <MenuButton
           v-if="authorization.isEditor"
@@ -77,7 +95,7 @@ const authorization = useAuthorization();
       <BlockCard
         v-if="blocksStore.selectedBlockId"
         :block-id="blocksStore.selectedBlockId"
-        @close="() => (blocksStore.selectedBlockId = undefined)"
+        @close="closeCard"
       ></BlockCard>
     </ExpandableFooter>
   </div>

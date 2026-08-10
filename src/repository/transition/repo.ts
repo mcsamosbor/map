@@ -11,8 +11,11 @@ export interface TransitionRepository {
   /** Отписка от realtime-канала (если используется) */
   destroy(): void;
 
-  /** Добавить новый переход */
-  addTransition(data: Omit<TransitionData, "id">): Promise<void>;
+  /**
+   * Добавить новый переход.
+   * Возвращает созданный переход (с реальным id из БД/хранилища).
+   */
+  addTransition(data: Omit<TransitionData, "id">): Promise<TransitionData>;
 
   /** Удалить переход по id */
   removeTransition(transitionId: TransitionId): Promise<void>;

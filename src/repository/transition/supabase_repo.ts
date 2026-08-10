@@ -48,6 +48,17 @@ export class SupabaseTransitionRepository implements TransitionRepository {
   private handleRealtimePayload(payload: RealtimePostgresChangesPayload<DbTransitionRow>) {
     const { eventType, new: newRow, old } = payload;
 
+    // Если переход локально изменён (правки ещё не отправлены на сервер) —
+    // игнорируем realtime-события, иначе серверные данные затрут/восстановят
+    // локальные изменения (например, удалённый локально переход вернётся на карту).
+    if (
+      (eventType === "INSERT" || eventType === "UPDATE") &&
+      newRow &&
+      this.store.editedTransitions.has(newRow.id)
+    ) {
+      return;
+    }
+
     switch (eventType) {
       case "INSERT":
         if (newRow) {
@@ -69,6 +80,10 @@ export class SupabaseTransitionRepository implements TransitionRepository {
 
       case "DELETE":
         if (old) {
+          // Переход уже локально помечен на удаление — состояние уже синхронизировано
+          if (this.store.editedTransitions.has(old.id!)) {
+            return;
+          }
           this.store.transitions = this.store.transitions.filter((t) => t.id !== old.id);
         }
         break;
@@ -76,7 +91,7 @@ export class SupabaseTransitionRepository implements TransitionRepository {
   }
 
   // === CRUD-операции ===
-  async addTransition(data: TransitionData): Promise<void> {
+  async addTransition(data: Omit<TransitionData, "id">): Promise<TransitionData> {
     // Вставляем запись и сразу получаем её с новым id
     const { data: newRow, error } = await supabase
       .from("transitions")
@@ -93,9 +108,13 @@ export class SupabaseTransitionRepository implements TransitionRepository {
 
     if (error) throw error;
 
+    const newTransition = newRow as TransitionData;
+
     // Добавляем локально (realtime-канал может прислать дубликат позже,
     // но проверка в handleRealtimePayload предотвратит повтор)
-    this.store.transitions.push(newRow as TransitionData);
+    this.store.transitions.push(newTransition);
+
+    return newTransition;
   }
 
   async removeTransition(transitionId: TransitionId): Promise<void> {

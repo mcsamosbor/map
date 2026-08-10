@@ -14,12 +14,13 @@ export class MockTransitionRepository implements TransitionRepository {
 
   destroy(): void {}
 
-  async addTransition(data: TransitionData): Promise<void> {
+  async addTransition(data: Omit<TransitionData, "id">): Promise<TransitionData> {
     const newTransition: TransitionData = {
       ...data,
       id: this.nextId++,
     };
     this.store.transitions.push(newTransition);
+    return newTransition;
   }
 
   async removeTransition(transitionId: TransitionId): Promise<void> {

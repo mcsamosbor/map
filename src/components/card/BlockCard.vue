@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import HeaderButton from "./HeaderButton.vue";
 import ValueInput from "./ValueInput.vue";
 import Icon from "../common/Icon.vue";
@@ -28,9 +28,10 @@ const blockData = computed(() => blocksStore.getBlock(props.blockId));
 
 const isEditor = computed(() => authorization.isEditor);
 const isEditing = ref(false);
-const toggleEditing = () => {
+const toggleEditing = async () => {
   if (isEditing.value && blockData.value) {
-    blocksStore.updateBlock(blockData.value);
+    // Выключаем редактирование — отправляем изменения блока на сервер
+    await blocksStore.flushBlock(blockData.value.id);
   }
   isEditing.value = !isEditing.value;
 };
@@ -42,6 +43,18 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "close"): void;
 }>();
+
+// При редактировании карточки отмечаем блок изменённым (локально).
+// Отправка на сервер происходит при выключении режима, смене блока или закрытии карточки.
+watch(
+  blockData,
+  () => {
+    if (isEditing.value && blockData.value) {
+      blocksStore.markBlockEdited(blockData.value.id);
+    }
+  },
+  { deep: true },
+);
 
 const isDoubleFloor = computed({
   get: () => {

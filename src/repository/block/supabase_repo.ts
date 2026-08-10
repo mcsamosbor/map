@@ -59,16 +59,35 @@ export class SupabaseBlockRepository implements BlockRepository {
 
   private handleRealtimePayload(payload: RealtimePostgresChangesPayload<DbBlockRow>) {
     const { eventType, new: newRow, old } = payload;
+
+    // Если блок локально изменён (правки ещё не отправлены на сервер) —
+    // игнорируем realtime-UPDATE, иначе серверные данные затрут локальные правки.
+    if (eventType === "UPDATE" && newRow && this.store.editedBlocks.has(newRow.id)) {
+      return;
+    }
+
     switch (eventType) {
       case "INSERT":
         if (newRow) {
-          const newBlock: BlockData = { id: newRow.id, ...newRow.data };
+          const newBlock: BlockData = {
+            id: newRow.id,
+            ...newRow.data,
+            position_x: newRow.position_x ?? 0,
+            position_y: newRow.position_y ?? 0,
+            layer: newRow.layer ?? 0,
+          };
           this.store.blocks.push(newBlock);
         }
         break;
       case "UPDATE":
         if (newRow) {
-          const updatedBlock: BlockData = { id: newRow.id, ...newRow.data };
+          const updatedBlock: BlockData = {
+            id: newRow.id,
+            ...newRow.data,
+            position_x: newRow.position_x ?? 0,
+            position_y: newRow.position_y ?? 0,
+            layer: newRow.layer ?? 0,
+          };
           const index = this.store.blocks.findIndex((b) => b.id === updatedBlock.id);
           if (index !== -1) {
             this.store.blocks[index] = updatedBlock;
@@ -79,6 +98,8 @@ export class SupabaseBlockRepository implements BlockRepository {
         break;
       case "DELETE":
         if (old) {
+          // Блок удалён на сервере — убираем и из буфера локальных изменений
+          old.id && this.store.editedBlocks.delete(old.id);
           this.store.blocks = this.store.blocks.filter((b) => b.id !== old.id);
         }
         break;

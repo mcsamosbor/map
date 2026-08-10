@@ -1,7 +1,4 @@
-import { supabase } from "@/supabase";
 import { defineStore } from "pinia";
-import { type BlockData, type BlockUid, type PassagePosition } from "@/types/block";
-import { transitionPositions } from "@/const/rendering";
 import { NestedMap3 } from "@/utils";
 import { useBlocksStore } from "./blocks";
 import type { TransitionRepository } from "@/repository/transition/repo";
@@ -12,6 +9,8 @@ export interface TransitionsStore {
   transitions: TransitionData[];
   loading: boolean;
   error: string | null;
+  editedTransitions: Set<TransitionId>;
+  newTransitions: TransitionData[];
 }
 
 export const useTransitionsStore = defineStore("transitions", {
@@ -20,6 +19,8 @@ export const useTransitionsStore = defineStore("transitions", {
     transitions: [],
     loading: false,
     error: null,
+    editedTransitions: new Set<TransitionId>(),
+    newTransitions: [] as TransitionData[],
   }),
 
   getters: {
@@ -56,6 +57,10 @@ export const useTransitionsStore = defineStore("transitions", {
 
       this.repository = newRepo;
 
+      // Сбрасываем буфер несохранённых изменений
+      this.editedTransitions.clear();
+      this.newTransitions = [];
+
       try {
         await this.repository.init(this);
       } catch (err: unknown) {
@@ -82,14 +87,82 @@ export const useTransitionsStore = defineStore("transitions", {
 
     // ---- Методы работы с данными ----
 
-    async addTransition(data: Omit<TransitionData, "id">) {
-      if (!this.repository) throw new Error("Repository not set");
-      await this.repository.addTransition(data);
+    /**
+     * Добавить переход локально (буферизация).
+     * Изменение отправится на сервер при вызове flushPending().
+     * Возвращает созданный локально переход (с временным id).
+     */
+    addTransition(data: Omit<TransitionData, "id">) {
+      // Временный отрицательный id, уникальный в рамках текущей сессии.
+      const tempId: TransitionId = -this.newTransitions.length - 1;
+      const tempTransition: TransitionData = {
+        ...data,
+        id: tempId,
+      };
+      this.newTransitions.push(tempTransition);
+      this.transitions.push(tempTransition);
+      this.editedTransitions.add(tempId);
+      return tempTransition;
     },
 
-    async removeTransition(transitionId: TransitionId) {
-      if (!this.repository) throw new Error("Repository not set");
-      await this.repository.removeTransition(transitionId);
+    /**
+     * Удалить переход локально (буферизация).
+     * Переход сразу убирается с карты.
+     * Если переход ещё не был отправлен на сервер — просто убираем его из буфера,
+     * иначе помечаем на удаление (отправится при flushPending()).
+     */
+    removeTransition(transitionId: TransitionId) {
+      // Убираем переход с карты сразу, чтобы удаление было видно локально
+      this.transitions = this.transitions.filter((t) => t.id !== transitionId);
+
+      if (this.newTransitions.some((t) => t.id === transitionId)) {
+        // Новый переход, ещё не отправленный на сервер — просто убираем из буфера
+        this.newTransitions = this.newTransitions.filter((t) => t.id !== transitionId);
+        this.editedTransitions.delete(transitionId);
+      } else {
+        // Существующий переход — помечаем на удаление (отправится при flushPending())
+        this.editedTransitions.add(transitionId);
+      }
+    },
+
+    /**
+     * Отправить все накопленные изменения переходов на сервер.
+     * Вызывается при выключении режима редактирования.
+     */
+    async flushPending(): Promise<void> {
+      if (!this.repository) return;
+
+      // 1. Удаляем переходы, помеченные на удаление (существующие на сервере)
+      const deletions: Promise<void>[] = [];
+      for (const id of this.editedTransitions) {
+        if (!this.newTransitions.some((t) => t.id === id)) {
+          deletions.push(this.repository.removeTransition(id));
+        }
+      }
+      await Promise.all(deletions);
+
+      // 2. Отправляем создание новых переходов и заменяем temp-переходы на сохранённые
+      const additions = this.newTransitions.map((t) =>
+        this.repository!.addTransition(t).then((saved) => {
+          const idx = this.transitions.findIndex((tr) => tr.id === t.id);
+          if (idx !== -1) {
+            this.transitions[idx] = saved;
+          }
+        }),
+      );
+      await Promise.all(additions);
+
+      this.editedTransitions.clear();
+      this.newTransitions = [];
+    },
+
+    /**
+     * Сбросить буфер переходов без отправки на сервер.
+     * Используется при смене репозитория.
+     */
+    resetPending(): void {
+      this.editedTransitions.clear();
+      this.newTransitions = [];
     },
   },
 });
