@@ -1,5 +1,11 @@
 <script lang="ts" setup>
-import { IsSafePlace, type BlockData, type PassagePosition, type PlaceType } from "@/types/block";
+import {
+  getDisplayFloorBySlot,
+  IsSafePlace,
+  type BlockData,
+  type PassagePosition,
+  type PlaceType,
+} from "@/types/block";
 import type { Graphics } from "pixi.js";
 import { computed, shallowRef, watch } from "vue";
 import Flight from "./BlockFlight.vue";
@@ -103,39 +109,10 @@ const mainPartsShift = computed(() => {
   else return [0, 0] as const;
 });
 
-const isDoubleFloor = (floorIdx: number) => {
-  return props.block.floors_data?.[floorIdx]?.is_double ?? false;
-};
-
-const getSubFloor = (floor: number) => {
-  if (isDoubleFloor(floor)) return 1;
-  const prevFloor = floor + (floor > 0 ? -1 : 1);
-  if (isDoubleFloor(prevFloor)) return 2;
-};
-
-const getDisplayFloor = (blockData: BlockData, floorIdx: number) => {
-  if (floorIdx === 0) return floorIdx;
-  const doubleFloors = Object.entries(blockData.floors_data ?? {}).reduce<number>(
-    (prevCount: number, [floor, floorData]) => {
-      const parsedFloor = parseInt(floor);
-      const isCurrentFloorPositive = floorIdx > 0;
-      const isParsedFloorPositive = parsedFloor > 0;
-      if (isCurrentFloorPositive !== isParsedFloorPositive) return prevCount;
-      const isNeededFloor = floorIdx > 0 ? parsedFloor < floorIdx : parsedFloor > floorIdx;
-      if (floorData.is_double && isNeededFloor) {
-        return prevCount + 1;
-      }
-      return prevCount;
-    },
-    0,
-  );
-  return floorIdx + (floorIdx > 0 ? -1 : 1) * doubleFloors;
-};
-
 const getFloorText = (floor: number) => {
-  const subFloor = getSubFloor(floor);
-  const subText = subFloor ? `/${subFloor}` : "";
-  return `Эт. ${getDisplayFloor(props.block, floor)}${subText}`;
+  const display = getDisplayFloorBySlot(floor, props.block);
+  const subText = display.sub ? `/${display.sub}` : "";
+  return `Эт. ${display.floor}${subText}`;
 };
 
 const boxShadowFilter = shallowRef(
@@ -162,7 +139,7 @@ const nameTextStyle = {
 const floorTextStyle = computed(() => {
   return {
     fill: "white",
-    fontSize: getSubFloor(props.floor) === undefined ? 36 : 28,
+    fontSize: getDisplayFloorBySlot(props.floor, props.block).sub === undefined ? 36 : 28,
     fontWeight: "600",
     fontFamily: "Roboto",
   } as const;

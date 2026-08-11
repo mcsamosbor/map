@@ -50,7 +50,8 @@
 import { ref, onMounted, useTemplateRef, computed } from "vue";
 import { Viewport as PIXIViewport } from "pixi-viewport";
 import {
-  displayFloorToIndex,
+  getMaxFloorSlot,
+  getMinFloorSlot,
   PassagePositions,
   validatePassage,
   type BlockData,
@@ -135,7 +136,7 @@ onMounted(() => {
 const visibleBlocks = computed(() => {
   return store.blocks.filter((block) => {
     const floor = store.layer - block.layer;
-    return floor >= (block.min_floor ?? 0) && floor <= (block.max_floor ?? 0); // TODO fix to use real floor indexes
+    return floor >= getMinFloorSlot(block) && floor <= getMaxFloorSlot(block);
   });
 });
 
@@ -151,10 +152,8 @@ const allTransitionsData = computed(() => {
   const allTransitons = new NestedMap3<number, number, number, possibleTransitionInfo[]>(); // layer, x, y,
   const blocks = store.blocks;
   for (const block of blocks) {
-    const minDisplayFloor = block.min_floor ?? 0;
-    const maxDisplayFloor = block.max_floor ?? 0;
-    const minFloorIdx = displayFloorToIndex(minDisplayFloor, block);
-    const maxFloorIdx = displayFloorToIndex(maxDisplayFloor, block);
+    const minFloorIdx = getMinFloorSlot(block);
+    const maxFloorIdx = getMaxFloorSlot(block);
     for (let floor = minFloorIdx; floor <= maxFloorIdx; floor++) {
       const layer = block.layer + floor;
       for (const passagePosition of PassagePositions) {

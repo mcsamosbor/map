@@ -89,7 +89,6 @@ export function generateBlocks(count: number): BlockData[] {
       });
       // Забор
       const fence_type = randomChoice(FenceTypes);
-      const is_double = randomBool();
       const flight_statuses = {
         left_flight: randomBool() ? randomChoice(FlightStatuses) : undefined,
         right_flight: randomBool() ? randomChoice(FlightStatuses) : undefined,
@@ -99,11 +98,23 @@ export function generateBlocks(count: number): BlockData[] {
       floors_data[floor] = {
         passages_data: Object.keys(passages_data).length > 0 ? passages_data : undefined,
         fence_type,
-        is_double,
         flight_statuses: Object.values(flight_statuses).some((v) => v !== undefined)
           ? flight_statuses
           : undefined,
       };
+    }
+
+    // Двойные этажи — случайное подмножество ОТОБРАЖАЕМЫХ этажей
+    const double_floors: number[] = [];
+    if (maxFloor > minFloor) {
+      const doubleCount = randomInt(0, Math.min(2, maxFloor - minFloor));
+      const candidates = Array.from({ length: maxFloor - minFloor + 1 }, (_, i) => minFloor + i);
+      for (let d = 0; d < doubleCount; d++) {
+        const idx = randomInt(0, candidates.length - 1);
+        const [picked] = candidates.splice(idx, 1);
+        if (picked !== undefined) double_floors.push(picked);
+      }
+      double_floors.sort((a, b) => a - b);
     }
 
     const block: BlockData = {
@@ -126,6 +137,7 @@ export function generateBlocks(count: number): BlockData[] {
       is_pipe,
       places,
       floors_data,
+      double_floors,
     };
 
     blocks.push(block);
