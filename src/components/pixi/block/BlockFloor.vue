@@ -42,6 +42,8 @@ import circleUpIcon from "@/assets/icons/block/circle_up.svg?raw";
 import circleDownIcon from "@/assets/icons/block/circle_down.svg?raw";
 import roofIcon from "@/assets/icons/block/roof.svg?raw";
 import floodIcon from "@/assets/icons/block/flood.svg?raw";
+import generatorIcon from "@/assets/icons/block/generator.svg?raw";
+import boardIcon from "@/assets/icons/block/card/board.svg?raw";
 import { useBlocksStore } from "@/stores/blocks";
 
 const props = defineProps<{ block: BlockData; floor: number; x?: number; y?: number }>();
@@ -183,6 +185,10 @@ const hasPlace = (place: PlaceType) => {
 const hasSafePlace = computed(() => {
   return props.block.places?.find(({ type }) => IsSafePlace(type)) !== undefined;
 });
+
+const getPlaceFloor = (place: PlaceType) => {
+  return props.block.places?.find(({ type }) => type === place)?.floor;
+};
 </script>
 <template>
   <Container :x="x" :y="y" @pointertap="emit('click')">
@@ -271,6 +277,38 @@ const hasSafePlace = computed(() => {
       v-bind="toPos(...getPartPosition(...vSum(infoPartPosition, mainPartsShift)))"
       :color="mainColor"
     >
+      <template v-if="!block.is_pipe">
+        <Icon
+          v-if="hasPlace('generator')"
+          :path="rIcon(generatorIcon)"
+          :size="34"
+          :x="PART_SIZE / 4 + 5"
+          :y="PART_SIZE / 4"
+        ></Icon>
+        <Text
+          v-if="hasPlace('generator')"
+          :text="String(getPlaceFloor('generator'))"
+          :anchor="{ x: 0.5, y: 0.5 }"
+          :x="(PART_SIZE * 3) / 4 - 5"
+          :y="PART_SIZE / 4"
+          :style="floorValueTextStyle"
+        ></Text>
+        <Icon
+          v-if="hasPlace('board')"
+          :path="rIcon(boardIcon)"
+          :size="34"
+          :x="PART_SIZE / 4 + 5"
+          :y="(PART_SIZE * 3) / 4"
+        ></Icon>
+        <Text
+          v-if="hasPlace('board')"
+          :text="String(getPlaceFloor('board'))"
+          :anchor="{ x: 0.5, y: 0.5 }"
+          :x="(PART_SIZE * 3) / 4 - 5"
+          :y="(PART_SIZE * 3) / 4"
+          :style="floorValueTextStyle"
+        ></Text>
+      </template>
     </Part>
     <Part
       v-bind="toPos(...getPartPosition(...vSum(professionsPartPosition, mainPartsShift)))"
