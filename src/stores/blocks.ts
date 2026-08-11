@@ -1,6 +1,12 @@
 import { PostgrestError } from "@supabase/supabase-js";
 import { defineStore } from "pinia";
-import { type PassagePosition, type BlockData, type BlockUid, PassageTypes } from "@/types/block";
+import {
+  type PassagePosition,
+  type BlockData,
+  type BlockUid,
+  PassageTypes,
+  FenceTypes,
+} from "@/types/block";
 import type { BlockRepository } from "@/repository/block/repo";
 import { nextValue } from "@/utils";
 
@@ -115,6 +121,19 @@ export const useBlocksStore = defineStore("blocks", {
       const passagesData = block_data.floors_data[floor].passages_data;
       const newType = nextValue(PassageTypes, currentType);
       passagesData[position] = newType;
+      this.editedBlocks.add(blockId);
+    },
+    changeFenceType(blockId: BlockUid, floorIndex: number) {
+      if (!this.isEditing) return;
+      const block_data = this.blocks.find((block) => block.id === blockId);
+      if (!block_data) return;
+      const floor = floorIndex;
+      block_data.floors_data ??= {};
+      const currentType = block_data.floors_data[floor]?.fence_type ?? "missing";
+
+      block_data.floors_data[floor] ??= {};
+      const newType = nextValue(FenceTypes, currentType);
+      block_data.floors_data[floor].fence_type = newType;
       this.editedBlocks.add(blockId);
     },
     async addBlock(block: Omit<BlockData, "id">) {

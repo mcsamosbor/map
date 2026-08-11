@@ -26,6 +26,7 @@ import {
 import Passage from "./BlockPassage.vue";
 import Part from "./FloorPart.vue";
 import MiddleFlight from "./MiddleFlight.vue";
+import Fence from "./BlockFence.vue";
 import { BoxShadowFilter } from "pixi-box-shadow";
 import Icon from "./FloorIcon.vue";
 
@@ -69,12 +70,22 @@ const getPassageType = (pos: PassagePosition) => {
   return props.block.floors_data?.[props.floor]?.passages_data?.[pos] ?? "noway";
 };
 
+const getFenceType = () => {
+  return props.block.floors_data?.[props.floor]?.fence_type ?? "missing";
+};
+
 const blocksStore = useBlocksStore();
 
 const changePassageType = (pos: PassagePosition) => {
   if (!blocksStore.isEditing) return;
   const floor = props.floor;
   blocksStore.changePassageType(props.block.id, floor, pos);
+};
+
+const changeFenceType = () => {
+  if (!blocksStore.isEditing) return;
+  const floor = props.floor;
+  blocksStore.changeFenceType(props.block.id, floor);
 };
 
 const drawRow = (graphics: Graphics) => {
@@ -416,5 +427,6 @@ const hasSafePlace = computed(() => {
       :color="mainColor"
     ></Flight>
     <Graphics @effect="drawRow"></Graphics>
+    <Fence :type="getFenceType()" :direction="block.direction" @click="changeFenceType"></Fence>
   </Container>
 </template>
