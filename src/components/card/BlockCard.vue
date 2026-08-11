@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import HeaderButton from "./HeaderButton.vue";
 import ValueInput from "./ValueInput.vue";
+import TextAreaInput from "./TextAreaInput.vue";
 import Icon from "../common/Icon.vue";
 import Button from "./Button.vue";
 import FlightDisplay from "./FlightDisplay.vue";
@@ -357,11 +358,11 @@ const floodFloor = computed<number | null | string>({
       </div>
       <div class="editor-info">
         <span class="editor-info-label">Заметка</span>
-        <ValueInput
+        <TextAreaInput
           v-model="blockData.editor_info"
           :enabled="isEditing"
           class="editor-info-input"
-        ></ValueInput>
+        ></TextAreaInput>
       </div>
     </template>
     <span class="line"></span>
@@ -764,6 +765,11 @@ const floodFloor = computed<number | null | string>({
   width: 100%;
   min-height: 32px;
   padding: 4px 8px;
+
+  textarea {
+    text-align: left;
+    padding: 4px;
+  }
 }
 
 .places-row {
