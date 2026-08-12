@@ -413,7 +413,7 @@ const getPlaceFloor = (place: PlaceType) => {
         ></Icon>
         <Text
           v-if="block.has_roof"
-          :text="String(block.max_floor ?? '')"
+          :text="String((block.max_floor ?? 0) + 1)"
           :anchor="{ x: 0.5, y: 0.5 }"
           :x="(PART_SIZE * 3) / 4 - 5"
           :y="PART_SIZE / 4"

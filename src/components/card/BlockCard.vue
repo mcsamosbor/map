@@ -427,7 +427,7 @@ const floodFloor = computed<number | null | string>({
           <ValueInput
             v-else
             class="place-floor-input"
-            :model-value="blockData.has_roof ? blockData.max_floor : undefined"
+            :model-value="blockData.has_roof ? (blockData.max_floor ?? 0) + 1 : undefined"
           />
         </div>
         <div class="place-input" v-if="blockData.flood_floor != null || isEditing">
