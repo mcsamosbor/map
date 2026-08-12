@@ -2,7 +2,7 @@
 import type { BlockRepository } from "./repo";
 import type { BlockData, BlockUid } from "@/types/block";
 import type { BlocksStore } from "@/stores/blocks";
-import { generateBlocks } from "@/stores/blocks_mock";
+import { generateBlocks } from "@/repository/block/blocks_mock";
 
 export class MockBlockRepository implements BlockRepository {
   private store!: BlocksStore;
