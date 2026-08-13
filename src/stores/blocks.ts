@@ -4,8 +4,10 @@ import {
   type PassagePosition,
   type BlockData,
   type BlockUid,
+  type FlightPosition,
   PassageTypes,
   FenceTypes,
+  FlightStatuses,
 } from "@/types/block";
 import type { BlockRepository } from "@/repository/block/repo";
 import { nextValue } from "@/utils";
@@ -134,6 +136,20 @@ export const useBlocksStore = defineStore("blocks", {
       block_data.floors_data[floor] ??= {};
       const newType = nextValue(FenceTypes, currentType);
       block_data.floors_data[floor].fence_type = newType;
+      this.editedBlocks.add(blockId);
+    },
+    changeFlightStatus(blockId: BlockUid, floorIndex: number, flightPos: FlightPosition) {
+      if (!this.isEditing) return;
+      const block_data = this.blocks.find((block) => block.id === blockId);
+      if (!block_data) return;
+      const floor = floorIndex;
+      block_data.floors_data ??= {};
+      const currentStatus = block_data.floors_data[floor]?.flight_statuses?.[flightPos] ?? "free";
+
+      block_data.floors_data[floor] ??= {};
+      block_data.floors_data[floor].flight_statuses ??= {};
+      const newStatus = nextValue(FlightStatuses, currentStatus);
+      block_data.floors_data[floor].flight_statuses![flightPos] = newStatus;
       this.editedBlocks.add(blockId);
     },
     async addBlock(block: Omit<BlockData, "id">) {

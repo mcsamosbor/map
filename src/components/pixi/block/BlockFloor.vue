@@ -3,6 +3,7 @@ import {
   getDisplayFloorBySlot,
   IsSafePlace,
   type BlockData,
+  type FlightPosition,
   type PassagePosition,
   type PlaceType,
 } from "@/types/block";
@@ -96,6 +97,24 @@ const changeFenceType = () => {
   blocksStore.changeFenceType(props.block.id, floor);
 };
 
+const getFlightStatus = (flightPos: FlightPosition) => {
+  return props.block.floors_data?.[props.floor]?.flight_statuses?.[flightPos] ?? "free";
+};
+
+const canChangeFlightStatus = (flightPos: FlightPosition): boolean => {
+  if (props.block.is_pipe) return false;
+  if (flightPos === "middle_flight") {
+    return !!props.block.is_middle_flight && props.block.middle_flight !== undefined;
+  }
+  return props.block.is_middle_flight !== true && props.block[flightPos] !== undefined;
+};
+
+const changeFlightStatus = (flightPos: FlightPosition) => {
+  if (!blocksStore.isEditing) return;
+  if (!canChangeFlightStatus(flightPos)) return;
+  blocksStore.changeFlightStatus(props.block.id, props.floor, flightPos);
+};
+
 const drawRow = (graphics: Graphics) => {
   const x = isVertical() ? 2 * GAP + PART_SIZE : GAP;
   const y = isVertical() ? GAP : 2 * GAP + PART_SIZE;
@@ -176,6 +195,8 @@ const getPlaceFloor = (place: PlaceType) => {
       v-bind="toPos(...getPartPosition(...leftFlightPositions[block.direction]))"
       :data="block.is_middle_flight || block.is_pipe ? undefined : block.left_flight"
       :color="mainColor"
+      :status="getFlightStatus('left_flight')"
+      @click="changeFlightStatus('left_flight')"
     ></Flight>
     <Passage
       :bg-color="bgColor"
@@ -222,6 +243,8 @@ const getPlaceFloor = (place: PlaceType) => {
       :direction="block.direction"
       :pos="getPassageCells([3, 0])[block.direction]"
       :data="block.is_middle_flight && !block.is_pipe ? block.middle_flight : undefined"
+      :status="getFlightStatus('middle_flight')"
+      @click="changeFlightStatus('middle_flight')"
     ></MiddleFlight>
     <MiddleFlight
       :main-color="mainColor"
@@ -440,6 +463,8 @@ const getPlaceFloor = (place: PlaceType) => {
       v-bind="toPos(...getPartPosition(...rightFlightPositions[block.direction]))"
       :data="block.is_middle_flight || block.is_pipe ? undefined : block.right_flight"
       :color="mainColor"
+      :status="getFlightStatus('right_flight')"
+      @click="changeFlightStatus('right_flight')"
     ></Flight>
     <Graphics @effect="drawRow"></Graphics>
     <Fence :type="getFenceType()" :direction="block.direction" @click="changeFenceType"></Fence>

@@ -6,8 +6,10 @@ export type BlockType = (typeof BlockTypes)[number];
 
 export const FlightTypes = ["stairs", "elevator", "ladder_elevator"] as const;
 export const FlightStatuses = ["free", "blocked"] as const;
+export const FlightPositions = ["left_flight", "right_flight", "middle_flight"] as const;
 export type FlightType = (typeof FlightTypes)[number];
 export type FlightStatus = (typeof FlightStatuses)[number];
+export type FlightPosition = (typeof FlightPositions)[number];
 export type FlightData = {
   type: FlightType;
   status?: FlightStatus;

@@ -1,7 +1,12 @@
 <script lang="ts" setup>
 import { computed } from "vue";
 import { PASSAGE_WIDTH, PART_SIZE, getPassagePosition, GAP, rIcon } from "@/const/rendering";
-import { BlockDirections, type BlockDirection, type FlightData } from "@/types/block";
+import {
+  BlockDirections,
+  type BlockDirection,
+  type FlightData,
+  type FlightStatus,
+} from "@/types/block";
 import type { ColorSource, Graphics } from "pixi.js";
 import ladderIconRaw from "@/assets/icons/block/ladder.svg?raw";
 import elevatorIconRaw from "@/assets/icons/block/elevator.svg?raw";
@@ -18,11 +23,14 @@ const props = defineProps<{
   pos: [number, number];
   mainColor: ColorSource;
   direction: BlockDirection;
+  status?: FlightStatus;
 }>();
 
 const emit = defineEmits<{
   (e: "click"): void;
 }>();
+
+const alpha = computed(() => (props.status === "blocked" ? 0.35 : 1));
 
 // Индекс направления и признак вертикальности (один раз)
 const directionIndex = computed(() => BlockDirections.indexOf(props.direction));
@@ -96,7 +104,7 @@ const drawPassage = (graphics: Graphics) => {
 <template>
   <Container :x="containerX" :y="containerY" @click="emit('click')">
     <Graphics @effect="drawPassage" />
-    <Container v-if="icons.length">
+    <Container v-if="icons.length" :alpha="alpha">
       <FloorIcon
         v-for="(icon, idx) in icons"
         :key="idx"
