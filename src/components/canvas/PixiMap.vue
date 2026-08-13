@@ -35,7 +35,7 @@
 
           <BlockTransition
             v-for="transition in existsTransitions"
-            :key="`transition_${transition.cell[0]}_${transition.cell[1]}`"
+            :key="`transition_${transition.layer}_${transition.cell[0]}_${transition.cell[1]}`"
             :type="store.isEditing ? 'deletable' : 'exists'"
             :cell="transition.cell"
             @click="deleteTransition(transition)"
@@ -54,7 +54,6 @@ import {
   getMinFloorSlot,
   PassagePositions,
   validatePassage,
-  type BlockData,
   type BlockUid,
   type PassagePosition,
   type PassageType,
@@ -65,7 +64,7 @@ import BlockTransition from "../pixi/block/Transition.vue";
 import { useTransitionsStore } from "@/stores/transitions.ts";
 import { NestedMap3 } from "@/utils.ts";
 import { useBlocksStore } from "@/stores/blocks";
-import { getTransitionsCell } from "@/types/transition.ts";
+import { getTransitionsCell, type TransitionId } from "@/types/transition.ts";
 import { useCanvasContextStore } from "@/stores/canvasContext.ts";
 
 const canvasHolder = useTemplateRef("canvasHolder");
@@ -215,27 +214,34 @@ const possibleTransitions = computed(() => {
 
 const transitionsStore = useTransitionsStore();
 
+type existsTransitionInfo = {
+  cell: [number, number];
+  layer: number;
+  ids: TransitionId[];
+};
+
 const existsTransitions = computed(() => {
-  const exists = transitionsStore.transitions
-    .map((transition) => {
-      const block = store.getBlock(transition.from_block_id);
-      const block2 = store.getBlock(transition.to_block_id);
-      if (!block || !block2) return;
-      const position = transition.from_position;
-      const floor = transition.from_floor;
-      const layer = block.layer + floor;
-      const floor2 = transition.to_floor;
-      const layer2 = block2.layer + floor2;
-      if (layer !== store.layer && layer2 !== store.layer) return;
-      const cell = getTransitionsCell(block, position);
-      return {
-        block,
-        position,
-        cell,
-      };
-    })
-    .filter((item) => item !== undefined);
-  return exists;
+  const result = new Map<string, existsTransitionInfo>();
+  for (const transition of transitionsStore.transitions) {
+    const block = store.getBlock(transition.from_block_id);
+    const block2 = store.getBlock(transition.to_block_id);
+    if (!block || !block2) continue;
+    const position = transition.from_position;
+    const floor = transition.from_floor;
+    const layer = block.layer + floor;
+    const floor2 = transition.to_floor;
+    const layer2 = block2.layer + floor2;
+    if (layer !== store.layer && layer2 !== store.layer) continue;
+    const cell = getTransitionsCell(block, position);
+    const key = `${layer}_${cell[0]}_${cell[1]}`;
+    const existing = result.get(key);
+    if (existing) {
+      existing.ids.push(transition.id);
+    } else {
+      result.set(key, { cell, layer, ids: [transition.id] });
+    }
+  }
+  return [...result.values()];
 });
 
 const createTransition = (cellX: number, cellY: number, info: possibleTransitionInfo[]) => {
@@ -253,20 +259,11 @@ const createTransition = (cellX: number, cellY: number, info: possibleTransition
   });
 };
 
-const deleteTransition = (transition: {
-  block: BlockData;
-  position: PassagePosition;
-  cell: [number, number];
-}) => {
+const deleteTransition = (transition: existsTransitionInfo) => {
   if (!store.isEditing) return;
-  const layer = store.layer;
-  const [x, y] = transition.cell;
-  const id = transitionsStore.mappedTransitions.get(layer, x, y)?.id;
-  if (!id) {
-    console.warn("Didnt find transition: ", transition);
-    return;
-  }
-  transitionsStore.removeTransition(id);
+  transition.ids.forEach((id) => {
+    transitionsStore.removeTransition(id);
+  });
 };
 </script>
 
