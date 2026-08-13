@@ -229,6 +229,17 @@ export const getMaxFloorSlot = (block: BlockData): number => {
 };
 
 /**
+ * Проверяет виден ли блок на указанном слое
+ * @param block данные блока
+ * @param layer слой карты
+ * @returns
+ */
+export const isBlockVisible = (block: BlockData, layer: number) => {
+  const floor = layer - block.layer;
+  return floor >= getMinFloorSlot(block) && floor <= getMaxFloorSlot(block);
+};
+
+/**
  * Отображаемый этаж по физическому слоту (с учётом подэтажа 1/2).
  */
 export const getDisplayFloorBySlot = (slot: number, block: BlockData): FloorDisplay => {

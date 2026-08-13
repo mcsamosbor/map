@@ -8,6 +8,7 @@ import vHide from "@/directives/vHide";
 import { renderer, patchProp as defPatchProp } from "vue3-pixi";
 import { Viewport, type IViewportOptions } from "pixi-viewport";
 import { RepositoryManager } from "@/repository/manager.ts";
+import { installDebugConsole } from "@/utils/debugConsole";
 
 // Регистрируем Viewport как кастомный элемент
 renderer.use({
@@ -51,6 +52,9 @@ app.directive("hide", vHide);
 
 app.use(createPinia());
 app.use(router);
+
+// Консольное API для картографов: window.mapDebug (см. mapDebug.help() в консоли браузера).
+installDebugConsole();
 
 export const repoManager = new RepositoryManager();
 

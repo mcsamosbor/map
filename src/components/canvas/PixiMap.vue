@@ -52,6 +52,7 @@ import { Viewport as PIXIViewport } from "pixi-viewport";
 import {
   getMaxFloorSlot,
   getMinFloorSlot,
+  isBlockVisible,
   PassagePositions,
   validatePassage,
   type BlockUid,
@@ -134,8 +135,7 @@ onMounted(() => {
 
 const visibleBlocks = computed(() => {
   return store.blocks.filter((block) => {
-    const floor = store.layer - block.layer;
-    return floor >= getMinFloorSlot(block) && floor <= getMaxFloorSlot(block);
+    return isBlockVisible(block, store.layer);
   });
 });
 
