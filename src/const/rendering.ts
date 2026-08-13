@@ -29,7 +29,7 @@ export const rightFlightPositions: { [dir in BlockDirection]: [number, number] }
   left: [0, 0],
 } as const;
 
-export const floorsPartPositions = {
+export const floorsPartPositions: { [dir in BlockDirection]: [number, number] } = {
   up: [0, 1],
   right: [0, 0],
   down: [3, 0],
@@ -144,7 +144,7 @@ export const blockTypeColors: { [type in BlockType]: ColorSource } = {
 };
 
 export const rIcon = (path: string) => {
-  return path.replace(/currentColor/, "#FFFFFF");
+  return path.replaceAll(/currentColor/g, "#FFFFFF");
 };
 
 export const colors: { [letter: string]: { bg: ColorSource; main: ColorSource } } = {
