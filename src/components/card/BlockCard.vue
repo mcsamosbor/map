@@ -406,12 +406,13 @@ const floodFloor = computed<number | null | string>({
         v-model="blockData.places"
         :enabled="isEditing"
       ></PlaceInput>
-      <PlaceInput
+      <PlacesInput
         :what="'mail'"
         :size="[18, 16]"
         v-model="blockData.places"
         :enabled="isEditing"
-      ></PlaceInput>
+        horizontal
+      ></PlacesInput>
     </div>
     <template v-if="hasRoofFloodBalcony">
       <span class="line"></span>

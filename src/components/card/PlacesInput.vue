@@ -9,6 +9,7 @@ const props = defineProps<{
   what: PlaceType;
   size: [number, number];
   enabled?: boolean;
+  horizontal?: boolean;
 }>();
 
 const places = defineModel<PlaceData[]>();
@@ -74,7 +75,11 @@ const handleBlur = (item: PlaceData) => {
 </script>
 
 <template>
-  <div v-if="filteredItems.length > 0 || enabled" class="place-input">
+  <div
+    v-if="filteredItems.length > 0 || enabled"
+    class="place-input"
+    :class="{ horizontal: horizontal }"
+  >
     <Icon :name="what" :size="size" />
     <ValueInput
       v-for="({ item, value }, index) in filteredItems"
@@ -95,6 +100,10 @@ const handleBlur = (item: PlaceData) => {
   flex-direction: column;
   align-items: center;
   gap: 5px;
+
+  &.horizontal {
+    flex-direction: row;
+  }
 }
 
 .place-floor-input {
