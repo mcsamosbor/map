@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import MenuButton from "@/components/common/MenuButton.vue";
 import ExpandableFooter from "./ExpandableFooter.vue";
-// import SearchInput from "@/components/common/SearchInput.vue";
+import SearchBlock from "@/components/search/SearchBlock.vue";
+import SearchResults from "@/components/search/SearchResults.vue";
 
 import { useBlocksStore } from "@/stores/blocks.ts";
 import { useTransitionsStore } from "@/stores/transitions";
@@ -35,8 +36,7 @@ const closeCard = async () => {
   <div class="mobile-view">
     <Canvas></Canvas>
     <ExpandableFooter>
-      <!-- <div class="searches">
-      </div> -->
+      <SearchResults class="mobile-search-results"></SearchResults>
       <!-- тут поисковая строка и кнопки -->
       <div class="buttons">
         <MenuButton
@@ -76,6 +76,7 @@ const closeCard = async () => {
         <!-- <MenuButton icon-name="profile"></MenuButton> -->
         <!-- тут основные кнопки: профиль, инфо, закладки -->
       </div>
+      <SearchBlock></SearchBlock>
       <!-- <SearchInput></SearchInput> -->
       <!-- <div class="extra-search-buttons">
       </div> -->
@@ -107,6 +108,13 @@ const closeCard = async () => {
   flex-direction: column;
   flex: 1;
   height: 100dvh; // важно для корректной работы процентных высот
+}
+
+.mobile-search-results {
+  flex: 0 0 auto;
+  max-height: 35dvh;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .searches,

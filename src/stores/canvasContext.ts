@@ -13,6 +13,12 @@ export const useCanvasContextStore = defineStore("canvasContext", () => {
   const crossVisible = ref(false);
   // Определяем, тач‑устройство или нет (можно переопределять)
   const isTouchDevice = ref("ontouchstart" in window || navigator.maxTouchPoints > 0);
+  // Запрос на фокусировку камеры на блоке (без изменения зума)
+  const focusRequest = ref<{ x: number; y: number; blockId?: number } | null>(null);
+
+  function focusBlock(x: number, y: number, blockId?: number) {
+    focusRequest.value = { x, y, blockId };
+  }
 
   function showContextMenu(worldX: number, worldY: number, screenX: number, screenY: number) {
     worldPos.value = { x: worldX, y: worldY };
@@ -40,6 +46,8 @@ export const useCanvasContextStore = defineStore("canvasContext", () => {
     contextMenuVisible,
     crossVisible,
     isTouchDevice,
+    focusRequest,
+    focusBlock,
     showContextMenu,
     showCross,
     hideAll,

@@ -2,6 +2,8 @@
 import MainCanvas from "@/components/canvas/MainCanvas.vue";
 import BlockCard from "@/components/card/BlockCard.vue";
 import MenuButton from "@/components/common/MenuButton.vue";
+import SearchBlock from "@/components/search/SearchBlock.vue";
+import SearchResults from "@/components/search/SearchResults.vue";
 import { repoManager } from "@/main";
 import { useAuthorization } from "@/stores/authorization";
 import { useBlocksStore } from "@/stores/blocks";
@@ -84,12 +86,14 @@ const closeCard = async () => {
             @click="authorization.signOut"
           ></MenuButton>
         </div>
+        <SearchBlock></SearchBlock>
         <BlockCard
           v-if="blocksStore.selectedBlockId"
           :block-id="blocksStore.selectedBlockId"
           @close="closeCard"
         ></BlockCard>
       </div>
+      <SearchResults class="pc-search-results"></SearchResults>
     </div>
   </div>
 </template>
@@ -99,6 +103,7 @@ const closeCard = async () => {
   flex-direction: row;
   flex: 1;
   height: 100dvh;
+  gap: 10px;
 }
 .canvas-wrapper {
   display: flex;
@@ -111,14 +116,15 @@ const closeCard = async () => {
 .left-menu {
   display: flex;
   flex-direction: column;
+  flex-wrap: wrap;
   padding: 10px;
+  gap: 10px;
   z-index: 5;
   flex: 0;
 }
 
 .menu-content {
   display: flex;
-  // flex: 1;
   border-radius: 10px;
   background-color: var(--bg-panel-background);
   padding: 10px;
@@ -133,6 +139,13 @@ const closeCard = async () => {
     min-height: 0;
     overflow-y: auto;
   }
+}
+
+.pc-search-results {
+  width: 280px;
+  flex: 0 0 auto;
+  max-height: 40dvh;
+  overflow-y: auto;
 }
 
 .buttons {
