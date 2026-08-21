@@ -3,18 +3,19 @@ import { onMounted, onUnmounted, useTemplateRef, watch } from "vue";
 import { MapRenderer } from "@/renderer/MapRenderer";
 import { useBlocksStore } from "@/stores/blocks";
 import { useTransitionsStore } from "@/stores/transitions";
+import { useCanvasContextStore } from "@/stores/canvasContext";
 
 const canvasHolder = useTemplateRef("canvasHolder");
 
 const blocksStore = useBlocksStore();
 const transitionsStore = useTransitionsStore();
+const canvasStore = useCanvasContextStore();
 
-let renderer: MapRenderer | null = null;
 let observer: ResizeObserver | null = null;
 
 const onResize = () => {
-  if (!renderer || !canvasHolder.value) return;
-  renderer.resize(canvasHolder.value.clientWidth, canvasHolder.value.clientHeight);
+  if (!canvasStore.mapRenderer || !canvasHolder.value) return;
+  canvasStore.mapRenderer.resize(canvasHolder.value.clientWidth, canvasHolder.value.clientHeight);
 };
 
 onMounted(async () => {
@@ -24,35 +25,39 @@ onMounted(async () => {
   observer = new ResizeObserver(onResize);
   observer.observe(holder);
 
-  renderer = await MapRenderer.create(holder);
+  canvasStore.mapRenderer = await MapRenderer.create(holder);
   onResize();
 });
 
 onUnmounted(() => {
   observer?.disconnect();
   observer = null;
-  renderer?.destroy();
-  renderer = null;
+  canvasStore.mapRenderer?.destroy();
+  canvasStore.mapRenderer = null;
 });
 
 watch(
   () => blocksStore.layer,
-  (layer) => renderer?.setLayer(layer),
+  (layer) => canvasStore.mapRenderer?.setLayer(layer),
 );
 
 watch(
   () => blocksStore.isEditing,
-  (editing) => renderer?.setEditing(editing),
+  (editing) => canvasStore.mapRenderer?.setEditing(editing),
 );
 
 watch(
   () => blocksStore.selectedBlockId,
-  (blockId) => renderer?.setSelected(blockId),
+  (blockId) => canvasStore.mapRenderer?.setSelected(blockId),
 );
 
-watch([() => blocksStore.blocks, () => transitionsStore.transitions], () => renderer?.setData(), {
-  deep: true,
-});
+watch(
+  [() => blocksStore.blocks, () => transitionsStore.transitions],
+  () => canvasStore.mapRenderer?.setData(),
+  {
+    deep: true,
+  },
+);
 </script>
 
 <template>

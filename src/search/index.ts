@@ -161,11 +161,16 @@ function isResidential(block: BlockData): boolean {
 
 function getDangerous(block: BlockData) {
   switch (block.type) {
-    case "residential": return 0;
-    case "destroyed": return 1;
-    case "infected": return 2;
-    case "frozen": return 3;
-    case "mushroom": return 4;
+    case "residential":
+      return 0;
+    case "destroyed":
+      return 1;
+    case "infected":
+      return 2;
+    case "frozen":
+      return 3;
+    case "mushroom":
+      return 4;
   }
 }
 
@@ -174,15 +179,15 @@ function isSearchable(block: BlockData): boolean {
 }
 
 function getNameScore(name: string, query: SearchQuery): number {
-  const queryText = (query.text || '').trim().toLowerCase();
-  const nameText = (name || '').trim().toLowerCase();
+  const queryText = (query.text || "").trim().toLowerCase();
+  const nameText = (name || "").trim().toLowerCase();
 
   // Если запрос пуст — возвращаем 0 (нет критериев)
   if (queryText.length === 0) return 0;
 
   // Токенизация: извлекаем последовательности букв (включая русские) и цифр
   const tokenize = (s: string): string[] =>
-    s.match(/[a-zа-яё0-9]+/gi)?.map(t => t.toLowerCase()) ?? [];
+    s.match(/[a-zа-яё0-9]+/gi)?.map((t) => t.toLowerCase()) ?? [];
 
   const nameTokens = tokenize(nameText);
   const queryTokens = tokenize(queryText);
@@ -193,14 +198,13 @@ function getNameScore(name: string, query: SearchQuery): number {
   // Для каждого токена запроса проверяем, входит ли он как подстрока в какой-либо токен имени
   let matched = 0;
   for (const qToken of queryTokens) {
-    const found = nameTokens.some(nToken => nToken.includes(qToken));
+    const found = nameTokens.some((nToken) => nToken.includes(qToken));
     if (found) matched++;
   }
 
   // Оценка = доля найденных токенов запроса
   return matched / nameTokens.length;
 }
-
 
 export interface SearchQuery {
   text: string;
@@ -274,7 +278,12 @@ export function searchBlocks(context: SearchContext, query: SearchQuery): BlockS
     //   }
     // } else
     if (anyWordIsFloor) {
-      const parsed = Number(words.slice().reverse().find((w) => /^-?\d+$/.test(w)));
+      const parsed = Number(
+        words
+          .slice()
+          .reverse()
+          .find((w) => /^-?\d+$/.test(w)),
+      );
       if (displayFloors.includes(parsed)) {
         matchedFloor = parsed;
       } else {

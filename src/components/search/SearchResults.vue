@@ -4,6 +4,7 @@ import { useBlocksStore } from "@/stores/blocks";
 import { useSearchStore } from "@/stores/search";
 import { useCanvasContextStore } from "@/stores/canvasContext";
 import { getBlockSearchPlaceTypes, type BlockSearchResult } from "@/search";
+import { CELL_SIZE, getBlockSizes } from "@/const/rendering";
 
 const blocksStore = useBlocksStore();
 const searchStore = useSearchStore();
@@ -11,7 +12,11 @@ const canvasContext = useCanvasContextStore();
 
 function focusResult(result: BlockSearchResult) {
   const block = result.block;
-  canvasContext.focusBlock(block.position_x, block.position_y, block.id);
+  const direction = block.direction;
+  const [width, height] = getBlockSizes(direction);
+  const x = block.position_x * CELL_SIZE + width / 2;
+  const y = -block.position_y * CELL_SIZE + height / 2;
+  canvasContext.focusTo(x, y);
   // Глобальный слой = базовый слой блока + физический слот этажа из результата
   blocksStore.layer = block.layer + result.floorSlot;
 }
