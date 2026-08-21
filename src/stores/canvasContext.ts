@@ -1,6 +1,7 @@
 // stores/canvasContext.ts
+import type { MapRenderer } from "@/renderer/MapRenderer";
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, shallowRef } from "vue";
 
 export const useCanvasContextStore = defineStore("canvasContext", () => {
   // Мировые координаты последнего клика по пустоте
@@ -13,6 +14,14 @@ export const useCanvasContextStore = defineStore("canvasContext", () => {
   const crossVisible = ref(false);
   // Определяем, тач‑устройство или нет (можно переопределять)
   const isTouchDevice = ref("ontouchstart" in window || navigator.maxTouchPoints > 0);
+  // Запрос на фокусировку камеры на блоке (без изменения зума)
+  const focusRequest = ref<{ x: number; y: number; blockId?: number } | null>(null);
+
+  const mapRenderer = shallowRef<MapRenderer | null>(null);
+
+  function focusTo(x: number, y: number) {
+    mapRenderer.value?.moveTo(x, y);
+  }
 
   function showContextMenu(worldX: number, worldY: number, screenX: number, screenY: number) {
     worldPos.value = { x: worldX, y: worldY };
@@ -35,11 +44,14 @@ export const useCanvasContextStore = defineStore("canvasContext", () => {
   }
 
   return {
+    mapRenderer,
     worldPos,
     screenPos,
     contextMenuVisible,
     crossVisible,
     isTouchDevice,
+    focusRequest,
+    focusTo,
     showContextMenu,
     showCross,
     hideAll,

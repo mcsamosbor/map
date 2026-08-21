@@ -16,6 +16,15 @@ export const getFloorSizes = (direction: BlockDirection) => {
   return [BLOCK_HEIGHT, BLOCK_WIDTH] as const;
 };
 
+export const getBlockSizes = (direction: BlockDirection) => {
+  const w = CELL_SIZE * 2;
+  const h = CELL_SIZE;
+  if (direction === "up" || direction === "down") {
+    return [w, h] as const;
+  }
+  return [h, w] as const;
+};
+
 export const leftFlightPositions: { [dir in BlockDirection]: [number, number] } = {
   up: [0, 0],
   right: [1, 0],

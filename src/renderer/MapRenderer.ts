@@ -178,6 +178,10 @@ export class MapRenderer {
 
   // ---- Публичное API (вызывается из Vue-компонента) ----
 
+  moveTo(x: number, y: number) {
+    this.viewport.moveCenter(x + viewportSize / 2, y + viewportSize / 2);
+  }
+
   setLayer(layer: number) {
     if (this.destroyed) return;
     this.layer = layer;
