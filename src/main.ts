@@ -10,8 +10,11 @@ import { installDebugConsole } from "@/utils/debugConsole";
 
 async function loadFonts() {
   try {
+    // Pixi-текст (src/renderer/BlockView.ts) использует Roboto fontWeight 600.
+    // document.fonts.load явно загружает это начертание для canvas-рендеринга,
+    // document.fonts.ready дожидается завершения загрузки всех подключённых шрифтов.
     await Promise.race([
-      Promise.all([document.fonts.load("600 36px Roboto"), document.fonts.load("400 36px Roboto")]),
+      Promise.all([document.fonts.load("600 36px Roboto"), document.fonts.ready]),
       new Promise((resolve) => setTimeout(resolve, 2000)),
     ]);
   } catch {

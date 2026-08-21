@@ -21,16 +21,6 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
-@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,700;1,700&display=swap");
-
-@font-face {
-  font-family: "Roboto";
-  src: url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,700;1,700&display=swap");
-  font-weight: 700;
-  font-style: normal;
-}
-
 .content {
   display: flex;
   background-color: #1e1e1e;
