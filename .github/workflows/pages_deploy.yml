@@ -2,11 +2,11 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    bracnhes:
+    branches:
       - master
 
 permissions:
-  contents: write             # необходимо для записи в ветку gh-pages
+  contents: write # необходимо для записи в ветку gh-pages
 
 jobs:
   deploy:
@@ -19,8 +19,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -30,14 +30,14 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-          VITE_BASE_URL: '/map/'
+          VITE_BASE_URL: "/map/"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist          # папка со сборкой (убедитесь, что у вас именно dist)
-          publish_branch: gh-pages     # ветка для Pages
-          force_orphan: true           # создаёт чистую историю ветки
+          publish_dir: ./dist # папка со сборкой (убедитесь, что у вас именно dist)
+          publish_branch: gh-pages # ветка для Pages
+          force_orphan: true # создаёт чистую историю ветки
           # Если у вас настроен кастомный домен, раскомментируйте и укажите:
           # cname: your-domain.com
