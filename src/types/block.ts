@@ -171,9 +171,10 @@ export const validatePassage = (
   type: PassageType | undefined,
   position: PassagePosition,
 ): PassageType => {
+  if (type !== undefined) return type;
+  // Боковые проходы по умолчанию открыты, угловые — закрыты.
   if (position === "left" || position === "right") return "normal";
-  if (type === undefined) return "noway";
-  return type;
+  return "noway";
 };
 
 /**

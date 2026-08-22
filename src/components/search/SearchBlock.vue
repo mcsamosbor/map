@@ -3,8 +3,8 @@ import { ref, computed, watch } from "vue";
 import Icon from "@/components/common/Icon.vue";
 import { useBlocksStore } from "@/stores/blocks";
 import { useSearchStore } from "@/stores/search";
-import { PLACE_SEARCH_VARIANTS, type SearchPlaceType } from "@/search";
-import { BlockTypes, type BlockType } from "@/types/block";
+import { PLACE_SEARCH_VARIANTS } from "@/search";
+import { BlockTypes, type BlockType, type SearchPlaceType } from "@/types/block";
 
 const blocksStore = useBlocksStore();
 const searchStore = useSearchStore();

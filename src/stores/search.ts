@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
-import type { BlockSearchResult, SearchPlaceType } from "@/search";
+import type { BlockSearchResult } from "@/search";
 import { searchBlocks } from "@/search";
-import type { BlockType } from "@/types/block";
+import type { BlockType, SearchPlaceType } from "@/types/block";
 
 export const useSearchStore = defineStore("search", {
   state: () => ({

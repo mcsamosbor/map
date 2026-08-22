@@ -38,7 +38,9 @@ import { getIconContext } from "@/iconCache";
 import {
   BlockDirections,
   IsSafePlace,
+  PassagePositions,
   getFloorDisplayBySlot,
+  validatePassage,
   type BlockData,
   type BlockDirection,
   type FenceType,
@@ -124,23 +126,29 @@ const stairsTextStyle = new TextStyle({
   fontFamily: "Roboto",
 });
 
-const CORNER_PASSAGES = ["up_left", "up_right", "down_right", "down_left"] as const;
-type CornerPassage = (typeof CORNER_PASSAGES)[number];
-
 const PASSAGE_FLAGS: Record<
-  CornerPassage,
+  PassagePosition,
   { up?: boolean; down?: boolean; left?: boolean; right?: boolean }
 > = {
   up_left: { up: true, left: true },
   up_right: { up: true, right: true },
   down_right: { down: true, right: true },
   down_left: { down: true, left: true },
+  left: { left: true },
+  right: { right: true },
 };
+
+/** Боковые проходы (торцы коридора). */
+const SIDE_PASSAGES = ["left", "right"] as const;
+type SidePassage = (typeof SIDE_PASSAGES)[number];
+
+const isSidePassage = (pos: PassagePosition): pos is SidePassage =>
+  pos === "left" || pos === "right";
 
 /** Позиция и размер прямоугольника прохода в координатах контейнера этажа. */
 const getPassageRect = (
   direction: BlockDirection,
-  pos: CornerPassage,
+  pos: PassagePosition,
   type: PassageType,
 ): { x: number; y: number; w: number; h: number } => {
   const flags = PASSAGE_FLAGS[pos];
@@ -155,6 +163,32 @@ const getPassageRect = (
     ((type === "noway" ? nowayShift : normalShift) + BlockDirections.indexOf(direction)) % 4;
   let x = px - w / 2;
   let y = py - h / 2;
+  // Боковые проходы: открытые не расширяются.
+  // Закрытые (noway) у горизонтального блока расширяются наверх на GAP
+  // (нижний край остаётся на месте), у вертикального — влево и вправо на GAP;
+  // нижний проход вертикального блока дополнительно укорачивается на GAP
+  // (верхний край остаётся на месте).
+  if (isSidePassage(pos)) {
+    if (type === "noway") {
+      // Общее: стена удлиняется вдоль блока.
+      h += GAP;
+      if (isVertical(direction)) {
+        // Вертикальный блок: расширяем влево и вправо на GAP.
+        w += 2 * GAP;
+        x -= GAP;
+        h -= GAP;
+        // Нижний проход укорачиваем на GAP (верхний край остаётся на месте).
+        if (py > BLOCK_WIDTH / 2) {
+          // h -= GAP;
+        }
+      } else {
+        // Горизонтальный блок: расширяем наверх на GAP (нижний край остаётся на месте).
+        y -= GAP;
+        h += GAP;
+      }
+    }
+    return { x, y, w, h };
+  }
   switch (effectIndex) {
     case 0:
       h += GAP;
@@ -172,6 +206,39 @@ const getPassageRect = (
       break;
   }
   return { x, y, w, h };
+};
+
+/**
+ * Белая черточка у внутреннего края закрытого (noway) бокового прохода.
+ * Край выбирается в сторону центра коридора, черточка рисуется на границе стены.
+ */
+const drawClosedPassageDash = (
+  context: GraphicsContext,
+  direction: BlockDirection,
+  rect: { x: number; y: number; w: number; h: number },
+) => {
+  const vertical = isVertical(direction);
+  const corridorCx = vertical ? 2 * GAP + PART_SIZE + PASSAGE_WIDTH / 2 : BLOCK_WIDTH / 2;
+  const corridorCy = vertical ? BLOCK_WIDTH / 2 : 2 * GAP + PART_SIZE + PASSAGE_WIDTH / 2;
+  const rectCx = rect.x + rect.w / 2;
+  const rectCy = rect.y + rect.h / 2;
+  const toCenterX = corridorCx - rectCx;
+  const toCenterY = corridorCy - rectCy;
+  if (Math.abs(toCenterX) > Math.abs(toCenterY)) {
+    // Смещение от центра по горизонтали: внутренний край вертикальный.
+    // У горизонтальных блоков стена расширена наверх, поэтому черточка
+    // привязана к верхней границе исходного слота (rect.y + GAP) и не двигается.
+    const edgeX = toCenterX > 0 ? rect.x + rect.w + GAP : rect.x;
+    context.rect(edgeX - GAP, rect.y + GAP, GAP, PASSAGE_WIDTH).fill("#FFFFFF");
+  } else {
+    // Смещение от центра по вертикали: внутренний край горизонтальный.
+    // У нижнего прохода вертикального блока черточку приподнимаем на GAP, у верхнего опускаем.
+    const edgeY = toCenterY > 0 ? rect.y + rect.h : rect.y + GAP;
+    const lift = toCenterY < 0 ? GAP : -GAP;
+    context
+      .rect(rectCx - PASSAGE_WIDTH / 2, edgeY - GAP - lift, PASSAGE_WIDTH, GAP)
+      .fill("#FFFFFF");
+  }
 };
 
 /** Позиция и размер фона среднего пролёта (в координатах контейнера этажа). */
@@ -336,7 +403,7 @@ export interface BlockViewCallbacks {
   onChangeFlightStatus: (blockId: number, floor: number, flightPos: FlightPosition) => void;
 }
 
-type FloorPassages = Record<CornerPassage, PassageType>;
+type FloorPassages = Record<PassagePosition, PassageType>;
 
 type FloorStaticParams = {
   direction: BlockDirection;
@@ -357,12 +424,18 @@ const buildFloorStatic = (context: GraphicsContext, p: FloorStaticParams) => {
   const rowH = vertical ? BLOCK_WIDTH - 2 * GAP : PASSAGE_WIDTH;
   context.rect(rowX, rowY, rowW, rowH).fill(p.bgColor);
 
-  // Угловые проходы
-  for (const pos of CORNER_PASSAGES) {
+  // Проходы (угловые и боковые)
+  for (const pos of PassagePositions) {
     const rect = getPassageRect(p.direction, pos, p.passages[pos]);
     context
       .rect(rect.x, rect.y, rect.w, rect.h)
       .fill(p.passages[pos] === "noway" ? p.mainColor : p.bgColor);
+  }
+
+  // Закрытые боковые проходы: белая черточка у внутреннего края стены
+  for (const pos of SIDE_PASSAGES) {
+    if (p.passages[pos] !== "noway") continue;
+    drawClosedPassageDash(context, p.direction, getPassageRect(p.direction, pos, "noway"));
   }
 
   // Средние пролёты
@@ -650,6 +723,8 @@ export class BlockView {
       passages.up_right,
       passages.down_right,
       passages.down_left,
+      passages.left,
+      passages.right,
       fenceType,
       hasMiddleGap ? "g" : "n",
     ].join("|");
@@ -731,13 +806,14 @@ export class BlockView {
   }
 
   private getPassageTypes(): FloorPassages {
-    const floorsData = this.block.floors_data?.[this.floor];
-    const passagesData = floorsData?.passages_data;
+    const passagesData = this.block.floors_data?.[this.floor]?.passages_data;
     return {
-      up_left: passagesData?.up_left ?? "noway",
-      up_right: passagesData?.up_right ?? "noway",
-      down_right: passagesData?.down_right ?? "noway",
-      down_left: passagesData?.down_left ?? "noway",
+      up_left: validatePassage(passagesData?.up_left, "up_left"),
+      up_right: validatePassage(passagesData?.up_right, "up_right"),
+      down_right: validatePassage(passagesData?.down_right, "down_right"),
+      down_left: validatePassage(passagesData?.down_left, "down_left"),
+      left: validatePassage(passagesData?.left, "left"),
+      right: validatePassage(passagesData?.right, "right"),
     };
   }
 
@@ -760,6 +836,8 @@ export class BlockView {
       passages.up_right,
       passages.down_right,
       passages.down_left,
+      passages.left,
+      passages.right,
       leftData?.type ?? "",
       getFlightStatus(block, floor, "left_flight"),
       rightData?.type ?? "",
@@ -770,15 +848,18 @@ export class BlockView {
     if (key === this.dynamicKey) return;
     this.dynamicKey = key;
 
-    // Лестницы угловых проходов
+    // Лестницы проходов
     const stairs: { x: number; y: number; tx: number; ty: number; label: string }[] = [];
-    for (const pos of CORNER_PASSAGES) {
+    for (const pos of PassagePositions) {
       const type = passages[pos];
       if (type !== "stairs_up" && type !== "stairs_down") continue;
       const rect = getPassageRect(direction, pos, type);
       const centerX = rect.x + rect.w / 2;
       const centerY = rect.y + rect.h / 2;
-      const shift = direction === "down" || direction === "up" ? { x: 0, y: 20 } : { x: 20, y: 0 };
+      // Лестницы: для боковых проходов иконка и подпись вытянуты вдоль блока,
+      // для угловых — поперёк.
+      const horizontalBlock = direction === "down" || direction === "up";
+      const shift = isSidePassage(pos) === horizontalBlock ? { x: 20, y: 0 } : { x: 0, y: 20 };
       stairs.push({
         x: centerX + shift.x,
         y: centerY + shift.y,
@@ -884,8 +965,8 @@ export class BlockView {
       this.hitAreas.push(hit);
     };
 
-    // Угловые проходы
-    for (const pos of CORNER_PASSAGES) {
+    // Проходы (угловые и боковые)
+    for (const pos of PassagePositions) {
       const rect = getPassageRect(direction, pos, passages[pos]);
       addHit(rect.w, rect.h, rect.x, rect.y, () =>
         this.callbacks.onChangePassageType(blockId, floor, pos),

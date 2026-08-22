@@ -90,7 +90,7 @@ export const passagePositions: {
   down_right: getPassageCells([5, 2]),
   down_left: getPassageCells([1, 2]),
   left: getPassageCells([0, 1]),
-  right: getPassageCells([5, 1]),
+  right: getPassageCells([6, 1]),
 };
 
 const zero_TransitionPositions = {
