@@ -3,18 +3,12 @@ import {
   displayFloorToIndex,
   type BlockData,
   type BlockType,
-  type PlaceType,
+  getBlockPlaces,
+  type SearchPlaceType,
+  isPlaceType,
+  getFloorDisplayBySlot,
+  getStringByFloorDisplay,
 } from "@/types/block";
-
-/**
- * Характеристики блока, которые не являются PlaceType, но выводятся в
- * карточке и могут быть использованы как фильтры/иконки.
- */
-export const BlockFeaturePlaces = ["roof", "flood", "balcony"] as const;
-export type BlockFeaturePlace = (typeof BlockFeaturePlaces)[number];
-
-/** Универсальный идентификатор места для фильтров и иконок. */
-export type SearchPlaceType = PlaceType | BlockFeaturePlace;
 
 /** Контекст поиска. В будущем здесь появится позиция пользователя/маршрута для ранжирования по расстоянию. */
 export interface SearchContext {
@@ -37,7 +31,7 @@ export interface BlockSearchResult {
   /** Физический слот этажа для API карты (blocksStore.layer). */
   floorSlot: number;
   /** Численное значение этажа для сортировки по высоте. */
-  floorNumeric: number;
+  // floorNumeric: number;
   /** Оценка релевантности (меньше — лучше). */
   score: number;
 }
@@ -229,6 +223,7 @@ export function searchBlocks(context: SearchContext, query: SearchQuery): BlockS
   // const floorFilter = query.floor;
   const blockTypeSet = new Set(query.blockTypes ?? []);
   const placeTypeSet = new Set(query.placeTypes ?? []);
+  const queryPlaceTypes = [...placeTypeSet.values()];
   const hasPlaceFilter = placeTypeSet.size > 0;
   const anyWordIsFloor = words.some((w) => /^-?\d+$/.test(w));
   const results: BlockSearchResult[] = [];
@@ -238,7 +233,8 @@ export function searchBlocks(context: SearchContext, query: SearchQuery): BlockS
     if (!isSearchable(block)) continue;
 
     const blockPlaces = getBlockSearchPlaceTypes(block);
-    if (hasPlaceFilter && !blockPlaces.some((t) => placeTypeSet.has(t))) continue;
+
+    if (hasPlaceFilter && !queryPlaceTypes.every((p) => blockPlaces.includes(p))) continue;
 
     const nameNorm = normalize(block.name ?? "");
 
@@ -317,13 +313,31 @@ export function searchBlocks(context: SearchContext, query: SearchQuery): BlockS
     if (isResidential(block)) score -= 2;
 
     const finalScore = rankResult(block, score, text);
-    results.push({
-      block,
-      displayFloor,
-      floorSlot,
-      floorNumeric: matchedFloor,
-      score: finalScore,
-    });
+    if (hasPlaceFilter) {
+      for (const place of placeTypeSet.values()) {
+        if (isPlaceType(place)) {
+          const placesData = getBlockPlaces(block, place);
+
+          placesData.forEach((data) => {
+            const df = getFloorDisplayBySlot(data.floor, block);
+            results.push({
+              block,
+              displayFloor: getStringByFloorDisplay(df),
+              floorSlot: data.floor,
+              score: finalScore,
+            });
+          });
+        }
+      }
+    } else {
+      const floorSlot = displayFloorToIndex(0, block);
+      results.push({
+        block,
+        displayFloor: "0",
+        floorSlot: floorSlot,
+        score: finalScore,
+      });
+    }
   }
 
   results.sort(

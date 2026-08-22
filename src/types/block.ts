@@ -34,11 +34,28 @@ export const PlaceTypes = [
   "toilet",
   "gallery",
 ] as const;
+export const AllPlaces = [...ProfessionPlaces, ...InfrastructurePlaces, ...PlaceTypes];
 
 export type PlaceType =
   | (typeof ProfessionPlaces)[number]
   | (typeof PlaceTypes)[number]
   | (typeof InfrastructurePlaces)[number];
+
+const placeTypeSet = new Set(AllPlaces);
+
+/**
+ * Характеристики блока, которые не являются PlaceType, но выводятся в
+ * карточке и могут быть использованы как фильтры/иконки.
+ */
+export const BlockFeaturePlaces = ["roof", "flood", "balcony"] as const;
+export type BlockFeaturePlace = (typeof BlockFeaturePlaces)[number];
+
+/** Универсальный идентификатор места для фильтров и иконок. */
+export type SearchPlaceType = PlaceType | BlockFeaturePlace;
+
+export const isPlaceType = (value: SearchPlaceType): value is PlaceType => {
+  return placeTypeSet.has(value as PlaceType);
+};
 
 export type PlaceData = {
   floor: number;
@@ -242,7 +259,7 @@ export const isBlockVisible = (block: BlockData, layer: number) => {
 /**
  * Отображаемый этаж по физическому слоту (с учётом подэтажа 1/2).
  */
-export const getDisplayFloorBySlot = (slot: number, block: BlockData): FloorDisplay => {
+export const getFloorDisplayBySlot = (slot: number, block: BlockData): FloorDisplay => {
   const min = getMinFloorSlot(block);
   const max = block.max_floor ?? min;
   const doubles = getDoubleFloors(block).filter((d) => d >= min && d <= max);
@@ -257,9 +274,18 @@ export const getDisplayFloorBySlot = (slot: number, block: BlockData): FloorDisp
   return { floor: slot - doublesBelow };
 };
 
+export const getStringByFloorDisplay = (display: FloorDisplay) => {
+  const sub = display.sub ? `/${display.sub}` : "";
+  return `${display.floor}${sub}`;
+};
+
 /**
  * Первый физический слот отображаемого этажа.
  * Для двойного этажа это слот подэтажа `N/1` (нижний), `N/2` находится на +1.
  */
 export const displayFloorToIndex = (displayFloor: number, block: BlockData): number =>
   getFirstSlotOfDisplayFloor(block, displayFloor);
+
+export const getBlockPlaces = (block: BlockData, place: PlaceType) => {
+  return block.places.filter(({ type }) => type === place);
+};

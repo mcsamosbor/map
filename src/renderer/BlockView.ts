@@ -19,6 +19,8 @@ import {
   colors,
   effectsPartPositions,
   floorsPartPositions,
+  getBlockSizes,
+  getFloorSizes,
   getPartPosition,
   getPassageCells,
   getPassagePosition,
@@ -36,7 +38,7 @@ import { getIconContext } from "@/iconCache";
 import {
   BlockDirections,
   IsSafePlace,
-  getDisplayFloorBySlot,
+  getFloorDisplayBySlot,
   type BlockData,
   type BlockDirection,
   type FenceType,
@@ -463,8 +465,7 @@ export class BlockView {
     this.callbacks = callbacks;
 
     const direction = block.direction;
-    const blockW = isVertical(direction) ? BLOCK_HEIGHT : BLOCK_WIDTH;
-    const blockH = isVertical(direction) ? BLOCK_WIDTH : BLOCK_HEIGHT;
+    const [floorW, floorH] = getFloorSizes(direction);
 
     this.root = new Container();
     this.root.eventMode = "static";
@@ -480,7 +481,7 @@ export class BlockView {
     this.root.addChild(this.floorContainer);
 
     // Белый фон со скруглением + тень по типу блока
-    this.bg = new Graphics(getRoundRectFillContext(blockW, blockH, 10, "#FFFFFF"));
+    this.bg = new Graphics(getRoundRectFillContext(floorW, floorH, 10, "#FFFFFF"));
     this.shadowFilter = new BoxShadowFilter({
       boxShadow: `0 0 20px 20px ${blockTypeColors[block.type ?? "residential"]}`,
       borderRadius: 10,
@@ -582,10 +583,11 @@ export class BlockView {
     this.floorContainer.addChild(this.dynamicFloor);
 
     // Рамка выделения
+    const [blockW, blockH] = getBlockSizes(direction);
     this.selection = new Graphics(getRoundRectStrokeContext(blockW, blockH, 10, 10, 0x00ffff));
     this.selection.eventMode = "none";
     this.selection.visible = false;
-    this.floorContainer.addChild(this.selection);
+    this.root.addChild(this.selection);
   }
 
   /**
@@ -609,12 +611,12 @@ export class BlockView {
 
     // Фон и рамка выделения зависят от ориентации блока: при смене direction
     // бэкграунд и свечение (фильтр на bg) должны поворачиваться вместе с этажом.
-    const blockW = vertical ? BLOCK_HEIGHT : BLOCK_WIDTH;
-    const blockH = vertical ? BLOCK_WIDTH : BLOCK_HEIGHT;
-    const bgKey = `${blockW}x${blockH}`;
+    const [floorW, floorH] = getFloorSizes(direction);
+    const bgKey = `${floorW}x${floorH}`;
     if (bgKey !== this.bgSizeKey) {
       this.bgSizeKey = bgKey;
-      this.bg.context = getRoundRectFillContext(blockW, blockH, 10, "#FFFFFF");
+      this.bg.context = getRoundRectFillContext(floorW, floorH, 10, "#FFFFFF");
+      const [blockW, blockH] = getBlockSizes(direction);
       this.selection.context = getRoundRectStrokeContext(blockW, blockH, 10, 10, 0x00ffff);
     }
 
@@ -675,7 +677,7 @@ export class BlockView {
     // Название и подпись этажа
     setText(this.nameText, block.name);
     this.nameText.y = PART_SIZE / 2 - (isPipe ? 0 : 25);
-    const display = getDisplayFloorBySlot(floor, block);
+    const display = getFloorDisplayBySlot(floor, block);
     setText(this.floorText, `Эт. ${display.floor}${display.sub ? `/${display.sub}` : ""}`);
     const floorStyle = display.sub === undefined ? floorTextStyle36 : floorTextStyle28;
     if (this.floorText.style !== floorStyle) this.floorText.style = floorStyle;

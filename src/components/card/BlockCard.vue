@@ -14,7 +14,7 @@ import {
   FlightTypes,
   IsSafePlace,
   ProfessionPlaces,
-  getDisplayFloorBySlot,
+  getFloorDisplayBySlot,
   type BlockType,
   type BlockUid,
   type PlaceType,
@@ -62,13 +62,13 @@ const isDoubleFloor = computed({
   get: () => {
     if (!blockData.value) return false;
     const slot = blocksStore.layer - blockData.value.layer;
-    const display = getDisplayFloorBySlot(slot, blockData.value);
+    const display = getFloorDisplayBySlot(slot, blockData.value);
     return blockData.value.double_floors?.includes(display.floor) ?? false;
   },
   set: (newValue) => {
     if (!blockData.value || !isEditing.value) return;
     const slot = blocksStore.layer - blockData.value.layer;
-    const display = getDisplayFloorBySlot(slot, blockData.value);
+    const display = getFloorDisplayBySlot(slot, blockData.value);
     blockData.value.double_floors ??= [];
     const floors = blockData.value.double_floors;
     const index = floors.indexOf(display.floor);
