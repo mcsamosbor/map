@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, useTemplateRef, watch } from "vue";
 import { MapRenderer } from "@/renderer/MapRenderer";
 import { useBlocksStore } from "@/stores/blocks";
+import { useCommentsStore } from "@/stores/comments";
 import { useTransitionsStore } from "@/stores/transitions";
 import { useCanvasContextStore } from "@/stores/canvasContext";
 
@@ -9,6 +10,7 @@ const canvasHolder = useTemplateRef("canvasHolder");
 
 const blocksStore = useBlocksStore();
 const transitionsStore = useTransitionsStore();
+const commentsStore = useCommentsStore();
 const canvasStore = useCanvasContextStore();
 
 let observer: ResizeObserver | null = null;
@@ -27,6 +29,9 @@ onMounted(async () => {
 
   canvasStore.mapRenderer = await MapRenderer.create(holder);
   onResize();
+
+  // Первичная загрузка маркеров комментариев (если репозиторий уже установлен).
+  void commentsStore.loadMapRoots(blocksStore.layer);
 });
 
 onUnmounted(() => {
@@ -38,7 +43,10 @@ onUnmounted(() => {
 
 watch(
   () => blocksStore.layer,
-  (layer) => canvasStore.mapRenderer?.setLayer(layer),
+  (layer) => {
+    canvasStore.mapRenderer?.setLayer(layer);
+    void commentsStore.loadMapRoots(layer);
+  },
 );
 
 watch(
@@ -54,6 +62,14 @@ watch(
 watch(
   [() => blocksStore.blocks, () => transitionsStore.transitions],
   () => canvasStore.mapRenderer?.setData(),
+  {
+    deep: true,
+  },
+);
+
+watch(
+  () => commentsStore.mapRoots,
+  () => canvasStore.mapRenderer?.setCommentMarkers(),
   {
     deep: true,
   },

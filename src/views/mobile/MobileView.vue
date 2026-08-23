@@ -7,6 +7,8 @@ import SearchResults from "@/components/search/SearchResults.vue";
 import { useBlocksStore } from "@/stores/blocks.ts";
 import { useTransitionsStore } from "@/stores/transitions";
 import BlockCard from "@/components/card/BlockCard.vue";
+import BlockCommentsPanel from "@/components/comment/BlockCommentsPanel.vue";
+import CommentThreadPanel from "@/components/comment/CommentThreadPanel.vue";
 import { useAuthorization } from "@/stores/authorization.ts";
 import Canvas from "@/components/canvas/MainCanvas.vue";
 import { repoManager } from "@/main.ts";
@@ -98,6 +100,8 @@ const closeCard = async () => {
         :block-id="blocksStore.selectedBlockId"
         @close="closeCard"
       ></BlockCard>
+      <CommentThreadPanel />
+      <BlockCommentsPanel :block-id="blocksStore.selectedBlockId" />
     </ExpandableFooter>
   </div>
 </template>

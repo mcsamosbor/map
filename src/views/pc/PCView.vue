@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import MainCanvas from "@/components/canvas/MainCanvas.vue";
 import BlockCard from "@/components/card/BlockCard.vue";
+import BlockCommentsPanel from "@/components/comment/BlockCommentsPanel.vue";
+import CommentThreadPanel from "@/components/comment/CommentThreadPanel.vue";
 import MenuButton from "@/components/common/MenuButton.vue";
 import SearchBlock from "@/components/search/SearchBlock.vue";
 import SearchResults from "@/components/search/SearchResults.vue";
@@ -93,6 +95,8 @@ const closeCard = async () => {
           @close="closeCard"
         ></BlockCard>
       </div>
+      <CommentThreadPanel />
+      <BlockCommentsPanel :block-id="blocksStore.selectedBlockId" />
       <SearchResults class="pc-search-results"></SearchResults>
     </div>
   </div>

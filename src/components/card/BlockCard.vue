@@ -584,6 +584,7 @@ const floodFloor = computed<number | null | string>({
         ></PlacesInput>
       </div>
     </template>
+    <span class="line"></span>
   </div>
 </template>
 <style lang="scss" scoped>

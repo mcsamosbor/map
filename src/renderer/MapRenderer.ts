@@ -3,12 +3,16 @@ import {
   Container,
   Graphics,
   GraphicsContext,
+  Text,
   type FederatedPointerEvent,
 } from "pixi.js";
 import { Viewport } from "pixi-viewport";
-import { GAP, PART_SIZE, PASSAGE_WIDTH } from "@/const/rendering";
+import commentIconRaw from "@/assets/icons/comment.svg?raw";
+import { CELL_SIZE, GAP, PART_SIZE, PASSAGE_WIDTH, rIcon } from "@/const/rendering";
+import { getIconContext } from "@/iconCache";
 import { useBlocksStore } from "@/stores/blocks";
 import { useCanvasContextStore } from "@/stores/canvasContext";
+import { useCommentsStore } from "@/stores/comments";
 import { useTransitionsStore } from "@/stores/transitions";
 import {
   PassagePositions,
@@ -21,12 +25,17 @@ import {
   type PassageType,
 } from "@/types/block";
 import { getTransitionsCell, type TransitionId } from "@/types/transition";
+import type { CommentId } from "@/types/comment";
 import { NestedMap3 } from "@/utils";
+import { clusterMapComments } from "@/utils/comments";
 import { BlockView, type BlockViewCallbacks } from "./BlockView";
 
 export const viewportSize = 30000;
 
 const gridSize = PART_SIZE + 2 * GAP + PASSAGE_WIDTH;
+
+/** Акцентный цвет маркера комментария (как --str-button-font-active / --bg-icon-button-active). */
+const COMMENT_MARKER_FILL = "#60a7d6";
 
 type TransitionType = "exists" | "creatable" | "deletable";
 
@@ -63,6 +72,11 @@ type TransitionNode = {
   graphics: Graphics;
 };
 
+type CommentMarkerNode = {
+  graphics: Graphics;
+  rootIds: CommentId[];
+};
+
 /**
  * Императивный рендерер карты.
  *
@@ -79,11 +93,15 @@ export class MapRenderer {
 
   private readonly blocksStore = useBlocksStore();
   private readonly transitionsStore = useTransitionsStore();
+  private readonly commentsStore = useCommentsStore();
   private readonly canvasContext = useCanvasContextStore();
 
   private layer = 0;
   private readonly blockViews = new Map<BlockUid, BlockView>();
   private transitionNodes: TransitionNode[] = [];
+  private commentNodes: CommentMarkerNode[] = [];
+  /** Общий на все маркеры графический контекст иконки комментария. */
+  private readonly commentIconContext = getIconContext(rIcon(commentIconRaw));
   private allTransitionsData = new NestedMap3<number, number, number, possibleTransitionInfo[]>();
 
   private selectedView: BlockView | null = null;
@@ -149,6 +167,7 @@ export class MapRenderer {
     this.recomputeTransitionsData();
     this.syncBlocks();
     this.syncTransitions();
+    this.syncCommentMarkers();
     this.setSelected(this.blocksStore.selectedBlockId);
     this.setEditing(this.blocksStore.isEditing);
   }
@@ -187,6 +206,7 @@ export class MapRenderer {
     this.layer = layer;
     this.syncBlocks();
     this.syncTransitions();
+    this.syncCommentMarkers();
     this.setSelected(this.blocksStore.selectedBlockId);
   }
 
@@ -195,6 +215,13 @@ export class MapRenderer {
     this.recomputeTransitionsData();
     this.syncBlocks();
     this.syncTransitions();
+    this.syncCommentMarkers();
+  }
+
+  /** Обновить только маркеры комментариев (вызывается при смене mapRoots). */
+  setCommentMarkers() {
+    if (this.destroyed) return;
+    this.syncCommentMarkers();
   }
 
   setSelected(blockId: BlockUid | undefined) {
@@ -247,6 +274,10 @@ export class MapRenderer {
       node.graphics.destroy();
     }
     this.transitionNodes = [];
+    for (const node of this.commentNodes) {
+      node.graphics.destroy();
+    }
+    this.commentNodes = [];
     this.viewport.destroy({ children: true });
     this.app.destroy(true, { children: true, texture: true, context: true });
   }
@@ -338,6 +369,79 @@ export class MapRenderer {
     });
     this.worldContainer.addChild(graphics);
     this.transitionNodes.push({ graphics });
+  }
+
+  // ---- Маркеры комментариев ----
+
+  private syncCommentMarkers() {
+    for (const node of this.commentNodes) {
+      node.graphics.destroy();
+    }
+    this.commentNodes = [];
+
+    const roots = this.commentsStore.mapRoots.filter(
+      (root) => root.layer === this.layer && root.map_x !== null && root.map_y !== null,
+    );
+    for (const cloud of clusterMapComments(roots)) {
+      const { anchor, members } = cloud;
+      if (anchor.map_x === null || anchor.map_y === null) continue;
+      this.commentNodes.push(
+        this.createCommentMarker(
+          anchor.map_x * CELL_SIZE,
+          anchor.map_y * CELL_SIZE,
+          members.length,
+          members.map((member) => member.id),
+        ),
+      );
+    }
+  }
+
+  private createCommentMarker(
+    x: number,
+    y: number,
+    count: number,
+    rootIds: CommentId[],
+  ): CommentMarkerNode {
+    const size = 72;
+    const graphics = new Graphics()
+      .roundRect(-size / 2, -size / 2, size, size, 10)
+      .fill(COMMENT_MARKER_FILL)
+      .stroke({ width: 3, color: "#FFFFFF", alignment: 0 });
+    graphics.position.set(x, y);
+    graphics.eventMode = "static";
+    graphics.cursor = "pointer";
+    graphics.on("pointertap", () => this.commentsStore.openThread(rootIds));
+    this.worldContainer.addChild(graphics);
+
+    // Иконка комментария по центру маркера.
+    const iconSize = 60;
+    const icon = new Graphics(this.commentIconContext);
+    icon.eventMode = "none";
+    icon.scale.set(iconSize / 24);
+    icon.position.set(-iconSize / 2, -iconSize / 2);
+    graphics.addChild(icon);
+
+    if (count > 1) {
+      // Счётчик группы в правом верхнем углу маркера.
+      const badgeRadius = 9;
+      const badgeCenterX = size / 2 - badgeRadius + 2;
+      const badgeCenterY = -size / 2 + badgeRadius - 2;
+      const badge = new Graphics()
+        .circle(badgeCenterX, badgeCenterY, badgeRadius)
+        .fill("#121212")
+        .stroke({ width: 2, color: "#FFFFFF" });
+      badge.eventMode = "none";
+      const label = new Text({
+        text: `${count}`,
+        style: { fontSize: 11, fontWeight: "700", fill: "#FFFFFF" },
+      });
+      label.anchor.set(0.5);
+      label.position.set(badgeCenterX, badgeCenterY);
+      badge.addChild(label);
+      graphics.addChild(badge);
+    }
+
+    return { graphics, rootIds };
   }
 
   // ---- Вычисления переходов (порт из старого PixiMap.vue) ----
