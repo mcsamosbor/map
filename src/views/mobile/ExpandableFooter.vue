@@ -151,7 +151,7 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    width: 40px;
+    width: 100%;
     height: 24px;
     cursor: grab;
     touch-action: none;
