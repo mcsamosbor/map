@@ -391,7 +391,7 @@ const getPlaceFloor = (block: BlockData, place: PlaceType) =>
   block.places?.find(({ type }) => type === place)?.floor;
 
 const hasSafePlace = (block: BlockData) =>
-  block.places?.find(({ type }) => IsSafePlace(type)) !== undefined;
+  block.type === "residential" && block.places?.find(({ type }) => IsSafePlace(type)) !== undefined;
 
 const getFlightStatus = (block: BlockData, floor: number, flightPos: FlightPosition) =>
   block.floors_data?.[floor]?.flight_statuses?.[flightPos] ?? "free";

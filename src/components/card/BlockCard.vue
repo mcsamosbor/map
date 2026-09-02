@@ -138,12 +138,13 @@ const changeIsMiddleFlight = () => {
   };
 };
 
-const safePlaces = computed(
-  () =>
-    blockData.value?.places
-      ?.filter(({ type }) => IsSafePlace(type))
-      .map(({ floor }) => floor)
-      .sort((a, b) => b - a) ?? [],
+const safePlaces = computed(() =>
+  blockData.value?.type === "residential"
+    ? (blockData.value?.places
+        ?.filter(({ type }) => IsSafePlace(type))
+        .map(({ floor }) => floor)
+        .sort((a, b) => b - a) ?? [])
+    : [],
 );
 
 const placeTypesExist = (types: readonly PlaceType[]) =>
