@@ -139,6 +139,19 @@ export type BlockRawData = {
    */
   double_floors?: number[];
 
+  /**
+   * Отображаемые этажи, у которых есть подэтажи `/2` и `/3`.
+   *
+   * Это номера ОТОБРАЖАЕМЫХ этажей (не физические слоты), например
+   * `triple_floors: [0]` значит, что отображаемый этаж 0 представлен
+   * подэтажами `0/1`, `0/2` и `0/3`.
+   *
+   * Не пересекается с `double_floors`: отображаемый этаж либо обычный,
+   * либо двойной, либо тройной. Тройной этаж добавляет два
+   * дополнительных физических слота (подэтажи `/2` и `/3`).
+   */
+  triple_floors?: number[];
+
   floors_data?: {
     [floor_idx: number]: {
       passages_data?: PassagesData;
@@ -178,72 +191,115 @@ export const validatePassage = (
 };
 
 /**
- * Модель двойных этажей.
+ * Модель высоких этажей (двойных и тройных).
  *
  * `min_floor` и `max_floor` — это ОТОБРАЖАЕМЫЕ этажи (нижний и верхний).
  * Физические слоты блока идут снизу вверх, начиная с `min_floor` (нижний
- * слот). Двойной этаж `N` занимает два соседних слота: нижний отображается
- * как `N/1` (слот `N`), следующий — как `N/2` (слот `N + 1`). Каждый двойной
- * этаж добавляет один дополнительный физический слот, поэтому ряд
- * отображаемых этажей остаётся непрерывным.
+ * слот). Отображаемый этаж `N` может занимать:
+ *   - 1 физический слот (обычный этаж, подпись `N`);
+ *   - 2 физических слота (двойной этаж, подписи `N/1`, `N/2`);
+ *   - 3 физических слота (тройной этаж, подписи `N/1`, `N/2`, `N/3`).
+ * Каждый дополнительный подэтаж добавляет один физический слот, поэтому
+ * ряд отображаемых этажей остаётся непрерывным.
  *
- * Список двойных этажей хранится в `double_floors` — это номера
- * ОТОБРАЖАЕМЫХ этажей, например `[0]` для пары `0/1`, `0/2`.
- * `floors_data` (проходы, заборы, статусы) по-прежнему индексируется
- * ФИЗИЧЕСКИМИ слотами.
+ * Высокие этажи хранятся списками ОТОБРАЖАЕМЫХ номеров:
+ *   - `double_floors` — этажи с двумя подэтажами, например `[0]` для `0/1`, `0/2`;
+ *   - `triple_floors` — этажи с тремя подэтажами, например `[0]` для `0/1`, `0/2`, `0/3`;
+ * списки не пересекаются. `floors_data` (проходы, заборы, статусы) по-прежнему
+ * индексируется ФИЗИЧЕСКИМИ слотами.
  *
  * Для любого слота `s` выполняется:
- *   display(s) = s - (число двойных отображаемых этажей, меньших display(s))
- *             = s - (число double_floors, меньших display(s))
+ *   display(s) = s - Σ (высота(d) - 1) по высоким отображаемым этажам d,
+ *                первые слоты которых лежат строго ниже display(s)
+ * (двойной этаж сдвигает на один слот, тройной — на два).
  *
- * Верхний физический слот блока = `max_floor + double_floors.length`.
+ * Верхний физический слот блока = `max_floor + Σ (высота(d) - 1)` по
+ * высоким этажам d из диапазона [min_floor, max_floor].
  *
  * Примеры:
- *   min=2 max=4, double_floors=[3]           -> слоты 2,3,4,5 -> подписи 2, 3/1, 3/2, 4
- *   min=-6 max=-4, double_floors=[-5]        -> слоты -6..-3  -> подписи -6, -5/1, -5/2, -4
- *   min=-2 max=1, double_floors=[0]          -> слоты -2..2   -> подписи -2, -1, 0/1, 0/2, 1
- *   min=-3 max=5, double_floors=[-3, 0]      -> слоты -3..7   -> подписи -3/1, -3/2, -2, -1, 0/1, 0/2, 1, 2, 3, 4, 5
+ *   min=2 max=4, double_floors=[3]                    -> слоты 2,3,4,5   -> подписи 2, 3/1, 3/2, 4
+ *   min=2 max=4, triple_floors=[3]                    -> слоты 2..6      -> подписи 2, 3/1, 3/2, 3/3, 4
+ *   min=-6 max=-4, double_floors=[-5]                 -> слоты -6..-3    -> подписи -6, -5/1, -5/2, -4
+ *   min=-2 max=1, double_floors=[0]                   -> слоты -2..2     -> подписи -2, -1, 0/1, 0/2, 1
+ *   min=-3 max=5, double_floors=[-3, 0]               -> слоты -3..7     -> подписи -3/1, -3/2, -2, -1, 0/1, 0/2, 1, 2, 3, 4, 5
+ *   min=0 max=3, triple_floors=[1]                    -> слоты 0..5      -> подписи 0, 1/1, 1/2, 1/3, 2, 3
  */
+
+/** Количество физических слотов (подэтажей), занимаемых отображаемым этажом. */
+export const FloorHeights = [1, 2, 3] as const;
+export type FloorHeight = (typeof FloorHeights)[number];
 
 export type FloorDisplay = {
   floor: number;
-  sub?: 1 | 2;
+  /** Номер подэтажа в составе этажа: `1`..`высота этажа` (1 — обычный этаж). */
+  sub?: 1 | 2 | 3;
+};
+
+/** Высокий (многослотовый) отображаемый этаж блока. */
+export type ExtendedFloor = {
+  floor: number;
+  /** Количество занимаемых физических слотов: 2 (двойной) или 3 (тройной). */
+  height: 2 | 3;
 };
 
 /**
- * Отображаемые этажи, у которых есть подэтаж `/2`.
- * Список отсортирован по возрастанию.
+ * Высокие отображаемые этажи блока: двойные и тройные.
+ * Список отсортирован по возрастанию номера этажа; дубликаты исключены
+ * (при конфликте между списками приоритет у тройного этажа).
  */
-export const getDoubleFloors = (block: BlockData): number[] =>
-  [...(block.double_floors ?? [])].sort((a, b) => a - b);
+export const getExtendedFloors = (block: BlockData): ExtendedFloor[] => {
+  const heights = new Map<number, 2 | 3>();
+  for (const floor of block.double_floors ?? []) heights.set(floor, 2);
+  for (const floor of block.triple_floors ?? []) heights.set(floor, 3);
+  return [...heights.entries()]
+    .map(([floor, height]) => ({ floor, height }))
+    .sort((a, b) => a.floor - b.floor);
+};
+
+/**
+ * Высота отображаемого этажа — количество занимаемых физических слотов
+ * (подэтажей): 1 (обычный), 2 (двойной) или 3 (тройной).
+ */
+export const getFloorHeight = (block: BlockData, displayFloor: number): FloorHeight => {
+  if (block.triple_floors?.includes(displayFloor)) return 3;
+  if (block.double_floors?.includes(displayFloor)) return 2;
+  return 1;
+};
+
+/** Количество дополнительных физических слотов, добавляемых высокими этажами. */
+const getExtendedSlots = (extended: ExtendedFloor[]): number =>
+  extended.reduce((acc, e) => acc + e.height - 1, 0);
 
 /**
  * Физический слот подэтажа `N/1` отображаемого этажа `N`.
- * Каждый двойной этаж ниже `N` добавляет один слот.
+ * Каждый высокий этаж ниже `N` (двойной или тройной) сдвигает слот вверх
+ * на `height - 1` позиций.
  */
 const getFirstSlotOfDisplayFloor = (block: BlockData, displayFloor: number): number => {
   const min = getMinFloorSlot(block);
-  const doubles = getDoubleFloors(block);
-  return displayFloor + doubles.filter((d) => d >= min && d < displayFloor).length;
+  const extendedBelow = getExtendedFloors(block).filter(
+    (e) => e.floor >= min && e.floor < displayFloor,
+  );
+  return displayFloor + getExtendedSlots(extendedBelow);
 };
 
 /**
  * Нижний (первый) физический слот блока.
- * Совпадает с `min_floor`, т.к. двойные этажи добавляют слоты только выше пары.
+ * Совпадает с `min_floor`, т.к. высокие этажи добавляют слоты только выше себя.
  */
 export const getMinFloorSlot = (block: BlockData): number => block.min_floor ?? 0;
 
 /**
  * Верхний (последний) физический слот блока.
- * `max_floor` — это верхний ОТОБРАЖАЕМЫЙ этаж. Если он двойной, его подэтаж
- * `/2` занимает слот `max_floor + 1`. Каждый двойной отображаемый этаж в
- * диапазоне [min_floor, max_floor] добавляет ещё один физический слот.
+ * `max_floor` — это верхний ОТОБРАЖАЕМЫЙ этаж. Каждый высокий отображаемый
+ * этаж в диапазоне [min_floor, max_floor] (двойной или тройной) добавляет
+ * `height - 1` дополнительных физических слотов (двойной — один, тройной — два).
  */
 export const getMaxFloorSlot = (block: BlockData): number => {
   const max = block.max_floor ?? 0;
   const min = block.min_floor ?? max;
-  const extraSlots = getDoubleFloors(block).filter((d) => d >= min && d <= max).length;
-  return max + extraSlots;
+  const extendedInRange = getExtendedFloors(block).filter((e) => e.floor >= min && e.floor <= max);
+  return max + getExtendedSlots(extendedInRange);
 };
 
 /**
@@ -258,21 +314,25 @@ export const isBlockVisible = (block: BlockData, layer: number) => {
 };
 
 /**
- * Отображаемый этаж по физическому слоту (с учётом подэтажа 1/2).
+ * Отображаемый этаж по физическому слоту (с учётом подэтажей `/1`..`/высота`).
  */
 export const getFloorDisplayBySlot = (slot: number, block: BlockData): FloorDisplay => {
   const min = getMinFloorSlot(block);
   const max = block.max_floor ?? min;
-  const doubles = getDoubleFloors(block).filter((d) => d >= min && d <= max);
+  const extendedInRange = getExtendedFloors(block).filter((e) => e.floor >= min && e.floor <= max);
 
-  for (const d of doubles) {
-    const start = getFirstSlotOfDisplayFloor(block, d);
-    if (slot === start) return { floor: d, sub: 1 };
-    if (slot === start + 1) return { floor: d, sub: 2 };
+  for (const e of extendedInRange) {
+    const start = getFirstSlotOfDisplayFloor(block, e.floor);
+    const sub = slot - start + 1;
+    if (sub >= 1 && sub <= e.height) {
+      return { floor: e.floor, sub: sub as 1 | 2 | 3 };
+    }
   }
 
-  const doublesBelow = doubles.filter((d) => getFirstSlotOfDisplayFloor(block, d) < slot).length;
-  return { floor: slot - doublesBelow };
+  const extendedBelow = extendedInRange.filter(
+    (e) => getFirstSlotOfDisplayFloor(block, e.floor) < slot,
+  );
+  return { floor: slot - getExtendedSlots(extendedBelow) };
 };
 
 export const getStringByFloorDisplay = (display: FloorDisplay) => {
@@ -282,7 +342,8 @@ export const getStringByFloorDisplay = (display: FloorDisplay) => {
 
 /**
  * Первый физический слот отображаемого этажа.
- * Для двойного этажа это слот подэтажа `N/1` (нижний), `N/2` находится на +1.
+ * Для высокого этажа это слот подэтажа `N/1` (нижний), следующие подэтажи
+ * (`N/2`, `N/3`) занимают слоты `+1`, `+2`.
  */
 export const displayFloorToIndex = (displayFloor: number, block: BlockData): number =>
   getFirstSlotOfDisplayFloor(block, displayFloor);

@@ -1,5 +1,5 @@
 import {
-  getDoubleFloors,
+  getExtendedFloors,
   displayFloorToIndex,
   type BlockData,
   type BlockType,
@@ -26,7 +26,7 @@ export interface BlockSearchFilters {
 /** Результат поиска — блок + демонстрационный этаж, который показывается в списке. */
 export interface BlockSearchResult {
   block: BlockData;
-  /** Отображаемый этаж (с поддержкой двойных этажей, e.g. "7-8"). */
+  /** Отображаемый этаж (с поддержкой высоких этажей: двойной «7-8», тройной «7-8-9»). */
   displayFloor: string;
   /** Физический слот этажа для API карты (blocksStore.layer). */
   floorSlot: number;
@@ -121,28 +121,37 @@ export function getBlockSearchPlaceTypes(block: BlockData): SearchPlaceType[] {
   );
 }
 
-/** Двойной этаж блока (например "7-8"). */
-export function getDoubleFloor(block: BlockData): { display: string; numeric: number } | null {
-  const doubles = getDoubleFloors(block);
-  if (doubles.length === 0) return null;
-  // В результатах показываем самый нижний двойной этаж
-  const first = doubles[0]!;
-  return { display: `${first}-${first + 1}`, numeric: first + 1 };
+/** Диапазон реальных этажей, занимаемых высоким этажом: «7-8» (двойной) или «7-8-9» (тройной). */
+export function formatHighFloorRange(floor: number, height: 2 | 3): string {
+  const floors = Array.from({ length: height }, (_, i) => floor + i);
+  return floors.join("-");
 }
 
-/** Демонстрационный этаж блока: приоритет двойному этажу. */
+/** Самый нижний высокий этаж блока (двойной/тройной). */
+export function getExtendedFloor(block: BlockData): { display: string; numeric: number } | null {
+  const extended = getExtendedFloors(block);
+  if (extended.length === 0) return null;
+  // В результатах показываем самый нижний высокий этаж
+  const first = extended[0]!;
+  return {
+    display: formatHighFloorRange(first.floor, first.height),
+    numeric: first.floor + first.height - 1,
+  };
+}
+
+/** Демонстрационный этаж блока: приоритет самому нижнему высокому этажу. */
 export function getDisplayFloor(block: BlockData): {
   display: string;
   numeric: number;
   slot: number;
 } {
   const min = block.min_floor ?? 0;
-  const double = getDoubleFloor(block);
-  if (double) {
+  const lowest = getExtendedFloors(block)[0];
+  if (lowest) {
     return {
-      display: double.display,
-      numeric: double.numeric,
-      slot: displayFloorToIndex(min, block) + 1,
+      display: formatHighFloorRange(lowest.floor, lowest.height),
+      numeric: lowest.floor + lowest.height - 1,
+      slot: displayFloorToIndex(lowest.floor, block) + lowest.height - 1,
     };
   }
   return { display: String(min), numeric: min, slot: displayFloorToIndex(min, block) };
@@ -210,7 +219,7 @@ export interface SearchQuery {
 /**
  * Поиск блоков по тексту, этажу и фильтрам.
  * Текст ищется по имени блока и синонимам мест; этаж — по отображаемым
- * этажам (с поддержкой двойных).
+ * этажам (с поддержкой высоких: двойных и тройных).
  *
  * Ранжирование: совпадение по имени > совпадение по месту > совпадение
  * по этажу; внутри — по положению. В будущем добавится ранжирование
@@ -256,12 +265,16 @@ export function searchBlocks(context: SearchContext, query: SearchQuery): BlockS
     // Матчинг по этажу
     const minFloor = block.min_floor ?? 0;
     const maxFloor = block.max_floor ?? minFloor;
-    const doubles = getDoubleFloors(block);
-    // Отображаемые этажи: непрерывный ряд от min до max, двойные занимают две соседние позиции
+    const extendedFloors = getExtendedFloors(block);
+    // Отображаемые этажи: непрерывный ряд от min до max; высокий этаж занимает
+    // `height` соседних позиций (двойной — две, тройной — три)
     const displayFloors: number[] = [];
     for (let f = minFloor; f <= maxFloor; f++) {
       displayFloors.push(f);
-      if (doubles.includes(f)) displayFloors.push(f + 1);
+      const extended = extendedFloors.find((e) => e.floor === f);
+      if (extended) {
+        for (let k = 1; k < extended.height; k++) displayFloors.push(f + k);
+      }
     }
 
     let matchedFloor: number | null = null;
@@ -290,14 +303,14 @@ export function searchBlocks(context: SearchContext, query: SearchQuery): BlockS
     let displayFloor: string;
     let floorSlot: number;
     if (matchedFloor !== null) {
-      // Оформляем отображение: если этаж — верхняя часть пары, показываем "N-1-N"
-      const isUpperPair = doubles.includes(matchedFloor - 1);
-      const isLowerPair = doubles.includes(matchedFloor);
-      displayFloor = isUpperPair
-        ? `${matchedFloor - 1}-${matchedFloor}`
-        : isLowerPair
-          ? `${matchedFloor}-${matchedFloor + 1}`
-          : String(matchedFloor);
+      // Оформляем отображение: если число принадлежит высокому этажу,
+      // показываем его диапазон целиком: «N-(N+1)» для двойного, «N-(N+1)-(N+2)» для тройного
+      const matchedExtended = extendedFloors.find(
+        (e) => matchedFloor! >= e.floor && matchedFloor! < e.floor + e.height,
+      );
+      displayFloor = matchedExtended
+        ? formatHighFloorRange(matchedExtended.floor, matchedExtended.height)
+        : String(matchedFloor);
       // Физический слот отображаемого этажа
       const minSlot = displayFloorToIndex(minFloor, block);
       const offset = displayFloors.indexOf(matchedFloor);

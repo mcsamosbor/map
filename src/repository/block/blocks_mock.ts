@@ -75,9 +75,37 @@ export function generateBlocks(count: number): BlockData[] {
       });
     }
 
-    // Данные по этажам
+    // Высокие этажи (двойные/тройные) — случайные непересекающиеся
+    // подмножества ОТОБРАЖАЕМЫХ этажей (от minFloor до maxFloor)
+    const double_floors: number[] = [];
+    const triple_floors: number[] = [];
+    if (maxFloor > minFloor) {
+      const candidates = Array.from({ length: maxFloor - minFloor + 1 }, (_, i) => minFloor + i);
+      const totalCount = randomInt(0, Math.min(3, candidates.length));
+      const doubleCount = randomInt(0, totalCount);
+      const pickCandidate = (): number | undefined => {
+        const idx = randomInt(0, candidates.length - 1);
+        const [picked] = candidates.splice(idx, 1);
+        return picked;
+      };
+      for (let d = 0; d < doubleCount; d++) {
+        const picked = pickCandidate();
+        if (picked !== undefined) double_floors.push(picked);
+      }
+      for (let t = 0; t < totalCount - doubleCount; t++) {
+        const picked = pickCandidate();
+        if (picked !== undefined) triple_floors.push(picked);
+      }
+      double_floors.sort((a, b) => a - b);
+      triple_floors.sort((a, b) => a - b);
+    }
+
+    // Данные по этажам — для ФИЗИЧЕСКИХ слотов (высокий этаж добавляет
+    // height - 1 дополнительных слотов сверху)
+    const extraSlots = double_floors.length + triple_floors.length * 2;
+    const maxPhysicalFloor = maxFloor + extraSlots;
     const floors_data: BlockRawData["floors_data"] = {};
-    for (let floor = minFloor; floor <= maxFloor; floor++) {
+    for (let floor = minFloor; floor <= maxPhysicalFloor; floor++) {
       // Проходы
       const passages_data: PassagesData = {};
       const positions = PassagePositions;
@@ -104,19 +132,6 @@ export function generateBlocks(count: number): BlockData[] {
       };
     }
 
-    // Двойные этажи — случайное подмножество ОТОБРАЖАЕМЫХ этажей
-    const double_floors: number[] = [];
-    if (maxFloor > minFloor) {
-      const doubleCount = randomInt(0, Math.min(2, maxFloor - minFloor));
-      const candidates = Array.from({ length: maxFloor - minFloor + 1 }, (_, i) => minFloor + i);
-      for (let d = 0; d < doubleCount; d++) {
-        const idx = randomInt(0, candidates.length - 1);
-        const [picked] = candidates.splice(idx, 1);
-        if (picked !== undefined) double_floors.push(picked);
-      }
-      double_floors.sort((a, b) => a - b);
-    }
-
     const block: BlockData = {
       id,
       name,
@@ -138,6 +153,7 @@ export function generateBlocks(count: number): BlockData[] {
       places,
       floors_data,
       double_floors,
+      triple_floors,
     };
 
     blocks.push(block);

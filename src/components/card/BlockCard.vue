@@ -8,6 +8,7 @@ import Button from "./Button.vue";
 import FlightDisplay from "./FlightDisplay.vue";
 import PosComponent from "./PosComponent.vue";
 import Checkbox from "./Checkbox.vue";
+import FloorHeightButton from "./FloorHeightButton.vue";
 import Select from "./ValueSelect.vue";
 import {
   BlockDirections,
@@ -15,8 +16,10 @@ import {
   IsSafePlace,
   ProfessionPlaces,
   getFloorDisplayBySlot,
+  getFloorHeight,
   type BlockType,
   type BlockUid,
+  type FloorHeight,
   type PlaceType,
 } from "@/types/block";
 import { useAuthorization } from "@/stores/authorization.ts";
@@ -58,24 +61,30 @@ watch(
   { deep: true },
 );
 
-const isDoubleFloor = computed({
+const floorHeight = computed<FloorHeight>({
   get: () => {
-    if (!blockData.value) return false;
+    if (!blockData.value) return 1;
     const slot = blocksStore.layer - blockData.value.layer;
     const display = getFloorDisplayBySlot(slot, blockData.value);
-    return blockData.value.double_floors?.includes(display.floor) ?? false;
+    return getFloorHeight(blockData.value, display.floor);
   },
   set: (newValue) => {
     if (!blockData.value || !isEditing.value) return;
     const slot = blocksStore.layer - blockData.value.layer;
     const display = getFloorDisplayBySlot(slot, blockData.value);
+    const floor = display.floor;
     blockData.value.double_floors ??= [];
-    const floors = blockData.value.double_floors;
-    const index = floors.indexOf(display.floor);
-    if (newValue && index === -1) {
-      floors.push(display.floor);
-    } else if (!newValue && index !== -1) {
-      floors.splice(index, 1);
+    blockData.value.triple_floors ??= [];
+    const doubles = blockData.value.double_floors;
+    const triples = blockData.value.triple_floors;
+    const doubleIndex = doubles.indexOf(floor);
+    const tripleIndex = triples.indexOf(floor);
+    if (doubleIndex !== -1) doubles.splice(doubleIndex, 1);
+    if (tripleIndex !== -1) triples.splice(tripleIndex, 1);
+    if (newValue === 2) {
+      doubles.push(floor);
+    } else if (newValue === 3) {
+      triples.push(floor);
     }
   },
 });
@@ -357,7 +366,7 @@ const floodFloor = computed<number | null | string>({
         <div class="type-info">
           <div class="type-info-item">
             <Icon name="double_floor" :size="[30, 30]"></Icon>
-            <Checkbox v-model="isDoubleFloor" :enabled="isEditing"></Checkbox>
+            <FloorHeightButton v-model="floorHeight" :enabled="isEditing"></FloorHeightButton>
           </div>
           <div class="type-info-item">
             <Icon name="pipe" :size="[30, 30]"></Icon>
