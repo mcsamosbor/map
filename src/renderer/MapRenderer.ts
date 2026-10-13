@@ -8,9 +8,9 @@ import {
 } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import commentIconRaw from "@/assets/icons/comment.svg?raw";
-import { CELL_SIZE, GAP, PART_SIZE, PASSAGE_WIDTH, rIcon } from "@/const/rendering";
+import { CELL_SIZE, GAP, PASSAGE_WIDTH, TRANSITION_CELL_SIZE, rIcon } from "@/const/rendering";
 import { getIconContext } from "@/iconCache";
-import { useBlocksStore } from "@/stores/blocks";
+import { useBlocksStore, type MapViewMode } from "@/stores/blocks";
 import { useCanvasContextStore } from "@/stores/canvasContext";
 import { useCommentsStore } from "@/stores/comments";
 import { useTransitionsStore } from "@/stores/transitions";
@@ -29,10 +29,23 @@ import type { CommentId } from "@/types/comment";
 import { NestedMap3 } from "@/utils";
 import { clusterMapComments } from "@/utils/comments";
 import { BlockView, type BlockViewCallbacks } from "./BlockView";
+import { ClusterRenderer } from "./ClusterRenderer";
 
 export const viewportSize = 30000;
 
-const gridSize = PART_SIZE + 2 * GAP + PASSAGE_WIDTH;
+/** Ограничения зума режима слоёв. */
+const LAYER_MIN_SCALE = 0.1;
+const LAYER_MAX_SCALE = 1;
+/**
+ * Ограничения зума кластерного вида: поле кластеров крупнее мира слоёв,
+ * поэтому можно вглядеться в блоки (до x3) и видеть всё поле целиком.
+ */
+const CLUSTER_MIN_SCALE = 0.02;
+const CLUSTER_MAX_SCALE = 3;
+/** Минимальный размер мира кластерного вида. */
+const CLUSTER_WORLD_MIN = 100000;
+/** Запас вокруг поля кластеров при расчёте границ мира. */
+const CLUSTER_WORLD_MARGIN = 10000;
 
 /** Акцентный цвет маркера комментария (как --str-button-font-active / --bg-icon-button-active). */
 const COMMENT_MARKER_FILL = "#60a7d6";
@@ -97,9 +110,14 @@ export class MapRenderer {
   private readonly canvasContext = useCanvasContextStore();
 
   private layer = 0;
+  private viewMode: MapViewMode = "layers";
+  private clustersDirty = true;
   private readonly blockViews = new Map<BlockUid, BlockView>();
   private transitionNodes: TransitionNode[] = [];
   private commentNodes: CommentMarkerNode[] = [];
+  /** Кластерный вид (переключается через setViewMode). */
+  private clusterContainer!: Container;
+  private clusterRenderer!: ClusterRenderer;
   /** Общий на все маркеры графический контекст иконки комментария. */
   private readonly commentIconContext = getIconContext(rIcon(commentIconRaw));
   private allTransitionsData = new NestedMap3<number, number, number, possibleTransitionInfo[]>();
@@ -158,11 +176,19 @@ export class MapRenderer {
       .wheel()
       .decelerate()
       .clamp({ direction: "all" })
-      .clampZoom({ minScale: 0.1, maxScale: 1 });
+      .clampZoom({ minScale: LAYER_MIN_SCALE, maxScale: LAYER_MAX_SCALE });
     this.setupViewportEvents();
 
     this.worldContainer.position.set(viewportSize / 2, viewportSize / 2);
     this.viewport.addChild(this.worldContainer);
+
+    // Кластерный вид: соседний контейнер с собственной раскладкой
+    this.clusterContainer = new Container();
+    this.clusterContainer.position.set(viewportSize / 2, viewportSize / 2);
+    this.clusterContainer.visible = false;
+    this.viewport.addChild(this.clusterContainer);
+    this.clusterRenderer = new ClusterRenderer(this.callbacks);
+    this.clusterContainer.addChild(this.clusterRenderer.root);
 
     this.recomputeTransitionsData();
     this.syncBlocks();
@@ -170,6 +196,7 @@ export class MapRenderer {
     this.syncCommentMarkers();
     this.setSelected(this.blocksStore.selectedBlockId);
     this.setEditing(this.blocksStore.isEditing);
+    this.setViewMode(this.blocksStore.viewMode);
   }
 
   private setupViewportEvents() {
@@ -201,6 +228,74 @@ export class MapRenderer {
     this.viewport.moveCenter(x + viewportSize / 2, y + viewportSize / 2);
   }
 
+  /**
+   * Фокус камеры на блоке. В кластерном режиме блок находится по
+   * кластерной раскладке, иначе используются мировые координаты.
+   */
+  moveToBlock(blockId: BlockUid, x: number, y: number) {
+    if (this.destroyed) return;
+    if (this.viewMode === "clusters") {
+      const center = this.clusterRenderer.getBlockCenter(blockId);
+      if (center) {
+        this.moveTo(center.x, center.y);
+        return;
+      }
+    }
+    this.moveTo(x, y);
+  }
+
+  /** Переключить вид карты: слои или кластеры. */
+  setViewMode(mode: MapViewMode) {
+    if (this.destroyed) return;
+    this.viewMode = mode;
+    const clusterMode = mode === "clusters";
+    this.worldContainer.visible = !clusterMode;
+    this.clusterContainer.visible = clusterMode;
+    if (clusterMode) {
+      if (this.clustersDirty) {
+        this.syncClusters();
+      }
+      this.applyClusterWorldBounds();
+    } else {
+      // Мир слоёв: прежние границы и ограничения зума
+      this.viewport.clamp({ direction: "all" });
+      this.viewport.clampZoom({ minScale: LAYER_MIN_SCALE, maxScale: LAYER_MAX_SCALE });
+    }
+    this.setSelected(this.blocksStore.selectedBlockId);
+  }
+
+  private syncClusters() {
+    this.clusterRenderer.sync(this.blocksStore.blocks, this.transitionsStore.transitions);
+    this.clustersDirty = false;
+    if (this.viewMode === "clusters") {
+      this.applyClusterWorldBounds();
+    }
+  }
+
+  /**
+   * Границы и зум кластерного вида: мир расширяется под поле кластеров
+   * (минимум CLUSTER_WORLD_MIN), зум позволяет вглядеться в блоки и
+   * увидеть всё поле целиком.
+   */
+  private applyClusterWorldBounds() {
+    const bounds = this.clusterRenderer.root.getLocalBounds();
+    const span = Math.max(
+      Math.abs(bounds.x),
+      Math.abs(bounds.y),
+      Math.abs(bounds.x + bounds.width),
+      Math.abs(bounds.y + bounds.height),
+    );
+    const halfWorld = Math.max(CLUSTER_WORLD_MIN / 2, span + CLUSTER_WORLD_MARGIN);
+    const center = viewportSize / 2;
+    this.viewport.clamp({
+      left: center - halfWorld,
+      top: center - halfWorld,
+      right: center + halfWorld,
+      bottom: center + halfWorld,
+    });
+    this.viewport.clampZoom({ minScale: CLUSTER_MIN_SCALE, maxScale: CLUSTER_MAX_SCALE });
+  }
+
   setLayer(layer: number) {
     if (this.destroyed) return;
     this.layer = layer;
@@ -216,6 +311,10 @@ export class MapRenderer {
     this.syncBlocks();
     this.syncTransitions();
     this.syncCommentMarkers();
+    this.clustersDirty = true;
+    if (this.viewMode === "clusters") {
+      this.syncClusters();
+    }
   }
 
   /** Обновить только маркеры комментариев (вызывается при смене mapRoots). */
@@ -234,6 +333,11 @@ export class MapRenderer {
       this.selectedView.setSelected(false);
       this.selectedView = null;
     }
+    if (this.viewMode === "clusters") {
+      this.clusterRenderer.setSelected(blockId);
+      return;
+    }
+    this.clusterRenderer.setSelected(undefined);
     if (blockId === undefined) return;
     const view = this.blockViews.get(blockId);
     if (!view || !view.root.visible) return;
@@ -278,6 +382,7 @@ export class MapRenderer {
       node.graphics.destroy();
     }
     this.commentNodes = [];
+    this.clusterRenderer.destroy();
     this.viewport.destroy({ children: true });
     this.app.destroy(true, { children: true, texture: true, context: true });
   }
@@ -357,7 +462,7 @@ export class MapRenderer {
   ) {
     const graphics = new Graphics(transitionContexts[type]);
     graphics.pivot.set(PASSAGE_WIDTH / 2, PASSAGE_WIDTH / 2);
-    graphics.position.set(cell[0] * gridSize, cell[1] * gridSize);
+    graphics.position.set(cell[0] * TRANSITION_CELL_SIZE, cell[1] * TRANSITION_CELL_SIZE);
     graphics.eventMode = "static";
     graphics.cursor = "pointer";
     graphics.on("pointertap", () => {

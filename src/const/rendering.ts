@@ -9,6 +9,19 @@ export const PADDING = 25;
 export const BLOCK_WIDTH = CELL_SIZE * 2 - 2 * PADDING;
 export const BLOCK_HEIGHT = CELL_SIZE - 2 * PADDING;
 
+/** Размер ячейки перехода (клетки, в которых стыкуются проходы блоков). */
+export const TRANSITION_CELL_SIZE = PART_SIZE + 2 * GAP + PASSAGE_WIDTH;
+
+// ---- Кластерный вид ----
+/** Отступ панели кластера от рамки до контента. */
+export const CLUSTER_PADDING = 90;
+/** Высота зоны заголовка панели («Слой N»). */
+export const CLUSTER_TITLE_HEIGHT = 180;
+export const CLUSTER_TITLE_FONT = 80;
+export const CLUSTER_FRAME_STROKE = 8;
+export const CLUSTER_LINK_STROKE = 8;
+export const CLUSTER_LINK_FONT = 56;
+
 export const getFloorSizes = (direction: BlockDirection) => {
   if (direction === "up" || direction === "down") {
     return [BLOCK_WIDTH, BLOCK_HEIGHT] as const;

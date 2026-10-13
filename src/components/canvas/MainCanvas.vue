@@ -21,7 +21,8 @@ const store = useBlocksStore();
   <div class="canvas">
     <div v-if="store.loading">Loading</div>
     <PixiMap></PixiMap>
-    <div class="slider">
+    <!-- Слайдер слоёв нужен только в режиме слоёв -->
+    <div v-if="store.viewMode === 'layers'" class="slider">
       <Slider v-model="store.layer" :min="-15" :max="15" :step="1"></Slider>
     </div>
     <ContextMenu></ContextMenu>

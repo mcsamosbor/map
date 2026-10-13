@@ -12,9 +12,14 @@ import {
 import type { BlockRepository } from "@/repository/block/repo";
 import { nextValue } from "@/utils";
 
+/** Режим отображения карты: слои (по слайдеру) или кластеры. */
+export const MapViewModes = ["layers", "clusters"] as const;
+export type MapViewMode = (typeof MapViewModes)[number];
+
 export interface BlocksStore {
   blocks: BlockData[];
   layer: number;
+  viewMode: MapViewMode;
   isEditing: boolean;
   loading: boolean;
   error: string | null;
@@ -29,6 +34,7 @@ export const useBlocksStore = defineStore("blocks", {
       repository: null as null | BlockRepository,
       blocks: [] as BlockData[],
       layer: 0,
+      viewMode: "layers" as MapViewMode,
       isEditing: false,
       loading: false,
       error: null as null | string,
@@ -71,6 +77,10 @@ export const useBlocksStore = defineStore("blocks", {
       }
     },
     startEditing() {},
+    /** Переключить вид карты между слоями и кластерами. */
+    toggleViewMode() {
+      this.viewMode = this.viewMode === "layers" ? "clusters" : "layers";
+    },
     async endEditing() {
       if (!this.repository) return;
       const promises: Promise<void>[] = [];

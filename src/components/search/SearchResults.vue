@@ -16,9 +16,11 @@ function focusResult(result: BlockSearchResult) {
   const [width, height] = getBlockSizes(direction);
   const x = block.position_x * CELL_SIZE + width / 2;
   const y = -block.position_y * CELL_SIZE + height / 2;
-  canvasContext.focusTo(x, y);
+  canvasContext.focusBlock(block.id, x, y);
   // Глобальный слой = базовый слой блока + физический слот этажа из результата
-  blocksStore.layer = block.layer + result.floorSlot;
+  if (blocksStore.viewMode === "layers") {
+    blocksStore.layer = block.layer + result.floorSlot;
+  }
 }
 </script>
 

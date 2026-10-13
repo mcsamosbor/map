@@ -23,6 +23,14 @@ export const useCanvasContextStore = defineStore("canvasContext", () => {
     mapRenderer.value?.moveTo(x, y);
   }
 
+  /**
+   * Фокус камеры на блоке: в кластерном режиме позиция берётся из
+   * кластерной раскладки, иначе используется мировая позиция (x, y).
+   */
+  function focusBlock(blockId: number, x: number, y: number) {
+    mapRenderer.value?.moveToBlock(blockId, x, y);
+  }
+
   function showContextMenu(worldX: number, worldY: number, screenX: number, screenY: number) {
     worldPos.value = { x: worldX, y: worldY };
     screenPos.value = { x: screenX, y: screenY };
@@ -52,6 +60,7 @@ export const useCanvasContextStore = defineStore("canvasContext", () => {
     isTouchDevice,
     focusRequest,
     focusTo,
+    focusBlock,
     showContextMenu,
     showCross,
     hideAll,

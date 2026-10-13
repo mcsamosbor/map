@@ -57,6 +57,14 @@ const closeCard = async () => {
             <MenuButton icon-name="ruble" :icon-size="[24, 24]" active></MenuButton>
           </a>
           <MenuButton
+            :icon-name="blocksStore.viewMode === 'layers' ? 'layers' : 'clusters'"
+            :icon-size="[22, 22]"
+            active
+            :enabled="blocksStore.viewMode === 'clusters'"
+            :title="blocksStore.viewMode === 'layers' ? 'Показать кластеры' : 'Показать слои'"
+            @click="blocksStore.toggleViewMode()"
+          ></MenuButton>
+          <MenuButton
             v-if="authorization.isEditor"
             icon-name="edit"
             :icon-size="[20, 20]"

@@ -50,6 +50,11 @@ watch(
 );
 
 watch(
+  () => blocksStore.viewMode,
+  (mode) => canvasStore.mapRenderer?.setViewMode(mode),
+);
+
+watch(
   () => blocksStore.isEditing,
   (editing) => canvasStore.mapRenderer?.setEditing(editing),
 );
