@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import MenuButton from "@/components/common/MenuButton.vue";
 import ExpandableFooter from "./ExpandableFooter.vue";
+import ShopItemsSettings from "@/components/shop/ShopItemsSettings.vue";
 import SearchBlock from "@/components/search/SearchBlock.vue";
 import SearchResults from "@/components/search/SearchResults.vue";
 
 import { useBlocksStore } from "@/stores/blocks.ts";
 import { useTransitionsStore } from "@/stores/transitions";
+import { useShopItemsStore } from "@/stores/shopItems";
 import BlockCard from "@/components/card/BlockCard.vue";
 import BlockCommentsPanel from "@/components/comment/BlockCommentsPanel.vue";
 import CommentThreadPanel from "@/components/comment/CommentThreadPanel.vue";
@@ -15,6 +17,7 @@ import { repoManager } from "@/main.ts";
 
 const blocksStore = useBlocksStore();
 const transitionsStore = useTransitionsStore();
+const shopItemsStore = useShopItemsStore();
 const authorization = useAuthorization();
 
 const toggleGlobalEditing = async () => {
@@ -23,6 +26,7 @@ const toggleGlobalEditing = async () => {
     // Выключаем режим общего редактирования — отправляем накопленные изменения на сервер
     await blocksStore.endEditing();
     await transitionsStore.flushPending();
+    await shopItemsStore.flushItems();
   }
 };
 
@@ -79,6 +83,10 @@ const closeCard = async () => {
         <!-- тут основные кнопки: профиль, инфо, закладки -->
       </div>
       <SearchBlock></SearchBlock>
+      <ShopItemsSettings
+        v-if="blocksStore.isEditing"
+        class="shop-settings-panel"
+      ></ShopItemsSettings>
       <!-- <SearchInput></SearchInput> -->
       <!-- <div class="extra-search-buttons">
       </div> -->
@@ -119,6 +127,11 @@ const closeCard = async () => {
   max-height: 35dvh;
   overflow-y: auto;
   scrollbar-width: thin;
+}
+
+.shop-settings-panel {
+  flex: 0 0 auto;
+  max-height: 30dvh;
 }
 
 .searches,
