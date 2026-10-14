@@ -1,6 +1,21 @@
 # samosbor_map
 
-This template should help get you started developing with Vue 3 in Vite.
+## Supabase database
+
+[Docs](https://supabase.com/docs/guides/local-development/cli-workflows#step-1-initialize)
+
+### Init
+
+```sh
+npx supabase login
+supabase link --project-ref <project-id>
+```
+
+### Push migrations to supabase
+
+```sh
+npx supabase db push
+```
 
 ## Recommended IDE Setup
 
