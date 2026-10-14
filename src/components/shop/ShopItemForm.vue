@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref } from "vue";
 import Icon from "../common/Icon.vue";
-import ValueInput from "../card/ValueInput.vue";
 import ItemIcon from "./ItemIcon.vue";
 import { useShopItemsStore } from "@/stores/shopItems";
 import type { ItemData, NewItemData } from "@/types/item";
@@ -253,14 +252,29 @@ const requestDelete = () => {
       <div class="form-fields">
         <div class="form-field">
           <span class="form-label">Имя</span>
-          <ValueInput class="form-name-input" v-model="name" :enabled="true"></ValueInput>
+          <input
+            v-model="name"
+            class="form-input form-name-input"
+            type="text"
+            placeholder="Название предмета"
+          />
         </div>
         <div class="form-field">
           <span class="form-label">Продажа</span>
           <div class="sale-row">
-            <ValueInput class="form-number-input" v-model="count" :enabled="true"></ValueInput>
+            <input
+              v-model="count"
+              class="form-input form-number-input"
+              type="text"
+              inputmode="numeric"
+            />
             <span class="form-unit">шт за</span>
-            <ValueInput class="form-number-input" v-model="price" :enabled="true"></ValueInput>
+            <input
+              v-model="price"
+              class="form-input form-number-input"
+              type="text"
+              inputmode="numeric"
+            />
             <span class="form-unit">{{
               pluralize(Number.parseInt(price, 10) || 0, ["талон", "талона", "талонов"])
             }}</span>
@@ -291,12 +305,13 @@ const requestDelete = () => {
         </button>
       </div>
       <div class="tags-add">
-        <ValueInput
-          class="tag-input"
+        <input
           v-model="tagInput"
-          :enabled="true"
+          class="form-input tag-input"
+          type="text"
+          placeholder="Новый тег"
           @keyup.enter="addTagFromInput"
-        ></ValueInput>
+        />
         <button type="button" class="link-button" @click="addTagFromInput">+ тег</button>
       </div>
       <div v-if="unusedTags.length > 0" class="tags-unused">
@@ -343,9 +358,6 @@ const requestDelete = () => {
   scrollbar-width: thin;
   color: var(--str-button-font);
   font-family: Roboto;
-  background-color: var(--bg-panel-background);
-  border-radius: 8px;
-  padding: 10px;
 }
 
 .form-header {
@@ -358,9 +370,12 @@ const requestDelete = () => {
 }
 
 .form-title {
+  font-family: Roboto;
+  font-size: 12px;
   font-weight: 600;
-  font-size: 14px;
-  color: var(--str-button-font-active);
+  color: var(--str-button-font);
+  opacity: 0.7;
+  white-space: nowrap;
 }
 
 .form-close {
@@ -369,10 +384,9 @@ const requestDelete = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  padding: 4px 6px;
   flex: 0 0 auto;
-  border-radius: 5px;
+  border-radius: 50%;
   color: var(--str-button-font);
 
   &:hover {
@@ -391,6 +405,7 @@ const requestDelete = () => {
 
 .icon-picker {
   all: unset;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -398,7 +413,7 @@ const requestDelete = () => {
   width: 56px;
   height: 56px;
   flex: 0 0 auto;
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: var(--bg-button-color);
   border: 1px dashed var(--bg-icon-button);
   color: var(--str-button-font);
@@ -434,17 +449,41 @@ const requestDelete = () => {
   flex-direction: column;
   gap: 3px;
   flex: 0 0 auto;
+  min-width: 0;
 }
 
 .form-label {
-  font-size: 11px;
+  font-family: Roboto;
+  font-size: 12px;
   font-weight: 600;
+  color: var(--str-button-font);
   opacity: 0.7;
 }
 
-.form-name-input {
-  height: 24px;
+.form-input {
+  height: 32px;
+  min-width: 0;
+  background-color: var(--bg-button-color);
+  border: none;
+  border-radius: 5px;
+  color: var(--str-button-font);
+  padding: 0 10px;
+  outline: none;
+  font-family: Roboto;
   font-size: 14px;
+
+  &::placeholder {
+    color: var(--str-button-font);
+    opacity: 0.6;
+  }
+
+  &:focus {
+    outline: 1px solid var(--str-button-font-active);
+  }
+}
+
+.form-name-input {
+  width: 100%;
 }
 
 .sale-row {
@@ -455,16 +494,16 @@ const requestDelete = () => {
 }
 
 .form-number-input {
-  width: 48px;
-  height: 24px;
+  width: 56px;
   flex: 0 0 auto;
-  font-size: 14px;
+  text-align: center;
 }
 
 .form-unit {
   flex: 0 0 auto;
   font-size: 12px;
   opacity: 0.8;
+  white-space: nowrap;
 }
 
 .icon-hint {
@@ -507,9 +546,15 @@ const requestDelete = () => {
 
 .tag-chip {
   all: unset;
+  box-sizing: border-box;
   cursor: pointer;
-  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border: 1px solid transparent;
   border-radius: 10px;
+  font-family: Roboto;
   font-size: 12px;
   font-weight: 600;
   color: var(--str-button-font);
@@ -523,13 +568,15 @@ const requestDelete = () => {
   &.active {
     color: var(--str-button-font-active);
     background-color: var(--bg-button-color-enabled);
+    border-color: var(--bg-icon-button-active);
   }
 }
 
 .tag-input {
   width: 110px;
-  height: 24px;
+  height: 32px;
   font-size: 13px;
+  flex: 0 0 auto;
 }
 
 .form-error {
@@ -551,13 +598,17 @@ const requestDelete = () => {
 
 .form-button {
   all: unset;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 5px 12px;
-  border-radius: 5px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
   font-family: Roboto;
   font-size: 13px;
   font-weight: 600;
@@ -566,12 +617,19 @@ const requestDelete = () => {
   white-space: nowrap;
 
   &:hover {
-    color: var(--str-button-font-active);
+    opacity: 0.85;
   }
 
   &.primary {
     color: var(--str-button-font-active);
     background-color: var(--bg-button-color-enabled);
+    border-color: var(--bg-icon-button-active);
+
+    &:hover {
+      opacity: 1;
+      color: var(--bg-panel-background);
+      background-color: var(--bg-icon-button-active);
+    }
   }
 
   &.danger {
@@ -579,12 +637,14 @@ const requestDelete = () => {
     margin-left: auto;
 
     &:hover {
+      opacity: 1;
       color: #ff8a8a;
     }
 
     &.armed {
       color: #ff8a8a;
       background-color: color-mix(in srgb, #d66060 25%, transparent);
+      border-color: #d66060;
     }
   }
 }

@@ -676,24 +676,6 @@ const floodFloor = computed<number | null | string>({
       </template>
       <span class="line"></span>
     </template>
-    <template v-if="isEditing">
-      <span class="line"></span>
-      <div class="shop-editor">
-        <span class="shop-editor-title">Продаваемые предметы</span>
-        <div class="shop-editor-list">
-          <div
-            v-for="item in shopItemsStore.items"
-            :key="item.id"
-            class="shop-editor-item"
-            :class="{ selected: isSaleItem(item.id) }"
-            :title="item.name"
-            @click="toggleSaleItem(item.id)"
-          >
-            <Icon :name="item.id" :size="[26, 26]"></Icon>
-          </div>
-        </div>
-      </div>
-    </template>
   </div>
 </template>
 <style lang="scss" scoped>

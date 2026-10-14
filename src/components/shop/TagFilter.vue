@@ -36,20 +36,23 @@ const toggle = (tag: string) => {
 
 .tag-chip {
   all: unset;
+  box-sizing: border-box;
   cursor: pointer;
-  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border: 1px solid transparent;
   border-radius: 10px;
   font-family: Roboto;
   font-size: 12px;
   font-weight: 600;
   color: var(--str-button-font);
   background-color: var(--bg-button-color);
-  border: 1px solid var(--bg-icon-button);
   white-space: nowrap;
 
   &:hover {
     color: var(--str-button-font-active);
-    border-color: var(--str-button-font-active);
   }
 
   &.active {

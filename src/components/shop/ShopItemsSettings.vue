@@ -68,8 +68,7 @@ const itemsWord = computed(() =>
 <template>
   <div class="shop-items-settings">
     <div class="settings-header">
-      <Icon class="settings-shop-icon" name="shop" :size="[18, 18]"></Icon>
-      <span class="settings-title">Предметы магазинов</span>
+      <span class="settings-label">Предметы:</span>
       <span class="settings-count">{{ shopItemsStore.items.length }} {{ itemsWord }}</span>
       <span
         v-if="shopItemsStore.hasPendingChanges"
@@ -143,9 +142,6 @@ const itemsWord = computed(() =>
   min-height: 0;
   color: var(--str-button-font);
   font-family: Roboto;
-  background-color: var(--bg-button-color);
-  border-radius: 10px;
-  padding: 10px;
 }
 
 .settings-header {
@@ -156,14 +152,13 @@ const itemsWord = computed(() =>
   flex: 0 0 auto;
 }
 
-.settings-shop-icon {
-  color: var(--str-button-font-active);
-}
-
-.settings-title {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--str-button-font-active);
+.settings-label {
+  font-family: Roboto;
+  font-size: 12px;
+  color: var(--str-button-font);
+  opacity: 0.7;
+  margin-right: 2px;
+  white-space: nowrap;
 }
 
 .settings-count {
@@ -180,28 +175,31 @@ const itemsWord = computed(() =>
 
 .settings-add {
   all: unset;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 40px;
+  height: 38px;
   flex: 0 0 auto;
   margin-left: auto;
-  border-radius: 6px;
-  color: var(--str-button-font-active);
-  background-color: var(--bg-button-color-enabled);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--str-button-font);
+  background-color: var(--bg-button-color);
 
   &:hover {
-    background-color: var(--bg-icon-button-active);
     color: var(--bg-panel-background);
+    background-color: var(--bg-icon-button-active);
+    border-color: var(--bg-icon-button-active);
   }
 }
 
 .settings-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
@@ -214,11 +212,14 @@ const itemsWord = computed(() =>
   gap: 8px;
   flex: 0 0 auto;
   cursor: pointer;
-  border-radius: 6px;
-  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 6px 8px;
+  background-color: var(--bg-button-color);
 
   &:hover {
     background-color: var(--bg-button-color-enabled);
+    border-color: var(--bg-icon-button-active);
 
     .settings-row-edit {
       opacity: 1;
@@ -233,7 +234,7 @@ const itemsWord = computed(() =>
   width: 28px;
   height: 28px;
   flex: 0 0 auto;
-  border-radius: 6px;
+  border-radius: 10px;
   background-color: var(--bg-panel-background);
 }
 
@@ -275,7 +276,7 @@ const itemsWord = computed(() =>
 
 .settings-tag {
   padding: 1px 7px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 11px;
   font-weight: 600;
   color: var(--str-button-font);
