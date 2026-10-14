@@ -26,7 +26,11 @@ import { useAuthorization } from "@/stores/authorization.ts";
 import PlaceInput from "./PlaceInput.vue";
 import PlacesInput from "./PlacesInput.vue";
 import { useBlocksStore } from "@/stores/blocks";
-import { nextValue } from "@/utils";
+import { useShopItemsStore } from "@/stores/shopItems";
+import { nextValue, pluralize } from "@/utils";
+import type { ItemData, ItemId } from "@/types/item";
+import ItemIcon from "../shop/ItemIcon.vue";
+import TagFilter from "../shop/TagFilter.vue";
 
 const blocksStore = useBlocksStore();
 const blockData = computed(() => blocksStore.getBlock(props.blockId));
@@ -132,6 +136,48 @@ const changePosition = (x: number, y: number) => {
 
 const authorization = useAuthorization();
 
+const shopItemsStore = useShopItemsStore();
+
+const isShopOpen = ref(false);
+const toggleShop = () => {
+  isShopOpen.value = !isShopOpen.value;
+};
+
+/** Предметы, которые продаются в этом блоке, с данными из глобального справочника. */
+const saleItems = computed<ItemData[]>(() => {
+  const types = blockData.value?.sale_items ?? [];
+  return types
+    .map((id) => shopItemsStore.getItem(id))
+    .filter((item): item is ItemData => item !== undefined);
+});
+
+const talonWord = (count: number): string => pluralize(count, ["талон", "талона", "талонов"]);
+
+const isSaleItem = (id: ItemId): boolean => blockData.value?.sale_items?.includes(id) ?? false;
+
+/** Добавить/убрать предмет в списке продаваемых (работает в режиме редактирования карточки). */
+const toggleSaleItem = (id: ItemId) => {
+  const block = blockData.value;
+  if (!block || !isEditing.value) return;
+  block.sale_items ??= [];
+  const index = block.sale_items.indexOf(id);
+  if (index === -1) {
+    block.sale_items.push(id);
+  } else {
+    block.sale_items.splice(index, 1);
+  }
+};
+
+/** Выбранные теги фильтра при вкл/выкл продажи (в режиме редактирования). */
+const shopTagFilter = ref<string[]>([]);
+
+/** Все предметы справочника для вкл/выкл продажи, с учётом фильтра по тегам. */
+const shopEditItems = computed<ItemData[]>(() => {
+  const filter = shopTagFilter.value;
+  if (filter.length === 0) return shopItemsStore.items;
+  return shopItemsStore.items.filter((item) => item.tags.some((tag) => filter.includes(tag)));
+});
+
 const changeFlight = (what: "left_flight" | "right_flight" | "middle_flight") => {
   if (!blockData.value || !isEditing.value) return;
   blockData.value[what] ??= { type: "stairs", status: "free" };
@@ -212,7 +258,12 @@ const floodFloor = computed<number | null | string>({
 <template>
   <div class="block-card" v-if="blockData">
     <div class="header-buttons">
-      <HeaderButton name="shop" :size="[22.5, 20]"></HeaderButton>
+      <HeaderButton
+        name="shop"
+        :size="[22.5, 20]"
+        :active="isShopOpen"
+        @click="toggleShop"
+      ></HeaderButton>
       <HeaderButton
         v-if="isEditor"
         name="trash"
@@ -314,287 +365,327 @@ const floodFloor = computed<number | null | string>({
         <HeaderButton name="path" :size="[20, 20]"></HeaderButton>
       </div>
     </div>
-    <template v-if="isEditor">
+    <template v-if="isShopOpen">
       <span class="line"></span>
-      <div class="structure-info">
-        <div class="position-info">
-          <PosComponent
-            label="X"
-            :enabled="isEditing"
-            v-model="blockData.position_x"
-          ></PosComponent>
-          <PosComponent
-            label="Y"
-            :enabled="isEditing"
-            v-model="blockData.position_y"
-          ></PosComponent>
-          <PosComponent label="L" :enabled="isEditing" v-model="blockData.layer"></PosComponent>
+      <template v-if="isEditing">
+        <div class="shop-edit-header">
+          <span class="shop-edit-title">Продажа предметов</span>
+          <span class="shop-edit-count"
+            >выбрано {{ saleItems.length }}
+            {{ pluralize(saleItems.length, ["предмет", "предмета", "предметов"]) }}</span
+          >
         </div>
-        <div class="rotation-info" :class="{ enabled: isEditing }">
-          <div class="controller-row">
-            <Icon name="circle_up" :size="[30, 30]" @click="changePosition(0, 1)"></Icon>
+        <TagFilter v-model="shopTagFilter" :tags="shopItemsStore.allTags"></TagFilter>
+        <div class="shop-edit-list">
+          <div
+            v-for="item in shopEditItems"
+            :key="item.id"
+            class="shop-edit-item"
+            :class="{ selected: isSaleItem(item.id) }"
+            title="Включить/выключить продажу"
+            @click="toggleSaleItem(item.id)"
+          >
+            <Checkbox :model-value="isSaleItem(item.id)" :enabled="true" mini></Checkbox>
+            <ItemIcon :icon="item.icon" :size="[20, 20]"></ItemIcon>
+            <span class="shop-edit-name" :title="item.name">{{ item.name }}</span>
+            <span class="shop-list-count">{{ item.count }}x</span>
+            <span class="shop-list-price">- {{ item.price }} {{ talonWord(item.price) }}</span>
           </div>
-          <div class="controller-row">
-            <Icon
-              name="circle_up"
-              :size="[30, 30]"
-              :style="{ rotate: '-90deg' }"
-              @click="changePosition(-1, 0)"
-            ></Icon>
-            <Icon
-              name="v_arrow"
-              :size="[30, 30]"
-              :style="{ rotate: `${directionToDegree[blockData.direction]}deg` }"
-              @click="changeRotation"
-            ></Icon>
-            <Icon
-              name="circle_up"
-              :size="[30, 30]"
-              :style="{ rotate: '90deg' }"
-              @click="changePosition(1, 0)"
-            ></Icon>
-          </div>
-          <div class="controller-row">
-            <Icon
-              name="circle_up"
-              :size="[30, 30]"
-              :style="{ rotate: '180deg' }"
-              @click="changePosition(0, -1)"
-            ></Icon>
-          </div>
+          <span v-if="shopEditItems.length === 0" class="shop-list-empty">Нет предметов</span>
         </div>
-        <div class="type-info">
-          <div class="type-info-item">
-            <Icon name="double_floor" :size="[30, 30]"></Icon>
-            <FloorHeightButton v-model="floorHeight" :enabled="isEditing"></FloorHeightButton>
-          </div>
-          <div class="type-info-item">
-            <Icon name="pipe" :size="[30, 30]"></Icon>
-            <Checkbox v-model="blockData.is_pipe" :enabled="isEditing"></Checkbox>
-          </div>
+      </template>
+      <div v-else class="shop-list">
+        <div v-for="item in saleItems" :key="item.id" class="shop-list-item">
+          <span class="shop-list-count">{{ item.count }}x</span>
+          <ItemIcon :icon="item.icon" :size="[24, 24]"></ItemIcon>
+          <span class="shop-list-price">- {{ item.price }} {{ talonWord(item.price) }}</span>
         </div>
-      </div>
-      <div class="editor-info">
-        <span class="editor-info-label">Заметка</span>
-        <TextAreaInput
-          v-model="blockData.editor_info"
-          :enabled="isEditing"
-          class="editor-info-input"
-        ></TextAreaInput>
+        <span v-if="saleItems.length === 0" class="shop-list-empty">Магазин пуст</span>
       </div>
     </template>
-    <span class="line"></span>
-    <div class="block-type-info">
-      <span>Тип блока: </span>
-      <Select
-        v-model="blockType"
-        :options="blockTypeOptions"
-        :enabled="isEditing"
-        placeholder="Выберите..."
-      />
-    </div>
-    <div class="block-type-info">
-      <span>Можно создать блок: </span>
-      <Select
-        v-model="blockData.can_create_block"
-        :options="canCreateOptions"
-        :enabled="isEditing"
-        placeholder="Выберите..."
-      />
-    </div>
-    <span class="line"></span>
-    <div class="places-row">
-      <PlaceInput
-        :what="'generator'"
-        :size="[14, 18]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlaceInput>
-      <PlaceInput
-        :what="'board'"
-        :size="[18, 18]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-      ></PlaceInput>
-      <PlacesInput
-        :what="'mail'"
-        :size="[18, 16]"
-        v-model="blockData.places"
-        :enabled="isEditing"
-        horizontal
-      ></PlacesInput>
-    </div>
-    <template v-if="hasRoofFloodBalcony">
+    <template v-else>
+      <template v-if="isEditor">
+        <span class="line"></span>
+        <div class="structure-info">
+          <div class="position-info">
+            <PosComponent
+              label="X"
+              :enabled="isEditing"
+              v-model="blockData.position_x"
+            ></PosComponent>
+            <PosComponent
+              label="Y"
+              :enabled="isEditing"
+              v-model="blockData.position_y"
+            ></PosComponent>
+            <PosComponent label="L" :enabled="isEditing" v-model="blockData.layer"></PosComponent>
+          </div>
+          <div class="rotation-info" :class="{ enabled: isEditing }">
+            <div class="controller-row">
+              <Icon name="circle_up" :size="[30, 30]" @click="changePosition(0, 1)"></Icon>
+            </div>
+            <div class="controller-row">
+              <Icon
+                name="circle_up"
+                :size="[30, 30]"
+                :style="{ rotate: '-90deg' }"
+                @click="changePosition(-1, 0)"
+              ></Icon>
+              <Icon
+                name="v_arrow"
+                :size="[30, 30]"
+                :style="{ rotate: `${directionToDegree[blockData.direction]}deg` }"
+                @click="changeRotation"
+              ></Icon>
+              <Icon
+                name="circle_up"
+                :size="[30, 30]"
+                :style="{ rotate: '90deg' }"
+                @click="changePosition(1, 0)"
+              ></Icon>
+            </div>
+            <div class="controller-row">
+              <Icon
+                name="circle_up"
+                :size="[30, 30]"
+                :style="{ rotate: '180deg' }"
+                @click="changePosition(0, -1)"
+              ></Icon>
+            </div>
+          </div>
+          <div class="type-info">
+            <div class="type-info-item">
+              <Icon name="double_floor" :size="[30, 30]"></Icon>
+              <FloorHeightButton v-model="floorHeight" :enabled="isEditing"></FloorHeightButton>
+            </div>
+            <div class="type-info-item">
+              <Icon name="pipe" :size="[30, 30]"></Icon>
+              <Checkbox v-model="blockData.is_pipe" :enabled="isEditing"></Checkbox>
+            </div>
+          </div>
+        </div>
+        <div class="editor-info">
+          <span class="editor-info-label">Заметка</span>
+          <TextAreaInput
+            v-model="blockData.editor_info"
+            :enabled="isEditing"
+            class="editor-info-input"
+          ></TextAreaInput>
+        </div>
+      </template>
+      <span class="line"></span>
+      <div class="block-type-info">
+        <span>Тип блока: </span>
+        <Select
+          v-model="blockType"
+          :options="blockTypeOptions"
+          :enabled="isEditing"
+          placeholder="Выберите..."
+        />
+      </div>
+      <div class="block-type-info">
+        <span>Можно создать блок: </span>
+        <Select
+          v-model="blockData.can_create_block"
+          :options="canCreateOptions"
+          :enabled="isEditing"
+          placeholder="Выберите..."
+        />
+      </div>
       <span class="line"></span>
       <div class="places-row">
-        <div class="place-input" v-if="blockData.has_roof || isEditing">
-          <Icon :name="'roof'" :size="[18, 15]" />
-          <Checkbox
-            v-if="isEditing"
-            v-model="blockData.has_roof"
+        <PlaceInput
+          :what="'generator'"
+          :size="[14, 18]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlaceInput>
+        <PlaceInput
+          :what="'board'"
+          :size="[18, 18]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+        ></PlaceInput>
+        <PlacesInput
+          :what="'mail'"
+          :size="[18, 16]"
+          v-model="blockData.places"
+          :enabled="isEditing"
+          horizontal
+        ></PlacesInput>
+      </div>
+      <template v-if="hasRoofFloodBalcony">
+        <span class="line"></span>
+        <div class="places-row">
+          <div class="place-input" v-if="blockData.has_roof || isEditing">
+            <Icon :name="'roof'" :size="[18, 15]" />
+            <Checkbox
+              v-if="isEditing"
+              v-model="blockData.has_roof"
+              :enabled="isEditing"
+              :mini="true"
+            ></Checkbox>
+            <ValueInput
+              v-else
+              class="place-floor-input"
+              :model-value="blockData.has_roof ? (blockData.max_floor ?? 0) + 1 : undefined"
+            />
+          </div>
+          <div class="place-input" v-if="blockData.flood_floor != null || isEditing">
+            <Icon :name="'flood'" :size="[18, 15]" />
+            <ValueInput class="place-floor-input" :enabled="isEditing" v-model="floodFloor" />
+          </div>
+          <div class="place-input" v-if="blockData.has_balcony || isEditing">
+            <Icon :name="'balcony'" :size="[17, 18]"></Icon>
+            <Checkbox
+              v-if="isEditing"
+              v-model="blockData.has_balcony"
+              :enabled="isEditing"
+              :mini="true"
+            ></Checkbox>
+          </div>
+        </div>
+      </template>
+      <template v-if="hasProfessions">
+        <span class="line"></span>
+        <div class="professions-row">
+          <PlacesInput
+            :what="'liquidator'"
+            :size="[24, 24]"
+            v-model="blockData.places"
             :enabled="isEditing"
-            :mini="true"
-          ></Checkbox>
-          <ValueInput
-            v-else
-            class="place-floor-input"
-            :model-value="blockData.has_roof ? (blockData.max_floor ?? 0) + 1 : undefined"
-          />
-        </div>
-        <div class="place-input" v-if="blockData.flood_floor != null || isEditing">
-          <Icon :name="'flood'" :size="[18, 15]" />
-          <ValueInput class="place-floor-input" :enabled="isEditing" v-model="floodFloor" />
-        </div>
-        <div class="place-input" v-if="blockData.has_balcony || isEditing">
-          <Icon :name="'balcony'" :size="[17, 18]"></Icon>
-          <Checkbox
-            v-if="isEditing"
-            v-model="blockData.has_balcony"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'repairman'"
+            :size="[24, 24]"
+            v-model="blockData.places"
             :enabled="isEditing"
-            :mini="true"
-          ></Checkbox>
+          ></PlacesInput>
+          <PlacesInput
+            :what="'cleaner'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'plumber'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
         </div>
-      </div>
-    </template>
-    <template v-if="hasProfessions">
-      <span class="line"></span>
-      <div class="professions-row">
-        <PlacesInput
-          :what="'liquidator'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'repairman'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'cleaner'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'plumber'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-      </div>
-    </template>
-    <template v-if="hasEntertainment">
-      <span class="line"></span>
-      <div class="places-row">
-        <div v-if="safePlaces.length > 0" class="places-input">
-          <Icon name="safe" :size="[24, 24]" />
-          <ValueInput
-            v-for="(value, index) in safePlaces"
-            :key="index"
-            class="place-floor-input"
-            v-bind:model-value="value?.toString()"
-          />
+      </template>
+      <template v-if="hasEntertainment">
+        <span class="line"></span>
+        <div class="places-row">
+          <div v-if="safePlaces.length > 0" class="places-input">
+            <Icon name="safe" :size="[24, 24]" />
+            <ValueInput
+              v-for="(value, index) in safePlaces"
+              :key="index"
+              class="place-floor-input"
+              v-bind:model-value="value?.toString()"
+            />
+          </div>
+          <PlacesInput
+            :what="'theatre'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'hospital'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'party'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
         </div>
-        <PlacesInput
-          :what="'theatre'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'hospital'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'party'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-      </div>
-    </template>
-    <template v-if="hasAmenities">
+      </template>
+      <template v-if="hasAmenities">
+        <span class="line"></span>
+        <div class="amenities-row">
+          <PlacesInput
+            :what="'laundry'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'shower'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'toilet'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'postal'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'gym'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'overview'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'racing'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'hockey'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'spleef'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'pool'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'warehouse'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+          <PlacesInput
+            :what="'gallery'"
+            :size="[24, 24]"
+            v-model="blockData.places"
+            :enabled="isEditing"
+          ></PlacesInput>
+        </div>
+      </template>
       <span class="line"></span>
-      <div class="amenities-row">
-        <PlacesInput
-          :what="'laundry'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'shower'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'toilet'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'postal'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'gym'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'overview'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'racing'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'hockey'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'spleef'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'pool'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'warehouse'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-        <PlacesInput
-          :what="'gallery'"
-          :size="[24, 24]"
-          v-model="blockData.places"
-          :enabled="isEditing"
-        ></PlacesInput>
-      </div>
     </template>
-    <span class="line"></span>
   </div>
 </template>
 <style lang="scss" scoped>
@@ -835,6 +926,121 @@ const floodFloor = computed<number | null | string>({
   flex-direction: row;
   justify-content: space-evenly;
   align-items: start;
+}
+
+.shop-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shop-list-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--bg-button-color);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.shop-list-count,
+.shop-list-price {
+  font-weight: 600;
+}
+
+.shop-list-empty {
+  opacity: 0.7;
+}
+
+.shop-edit-header {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.shop-edit-title {
+  font-weight: 600;
+}
+
+.shop-edit-count {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.shop-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 30dvh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.shop-edit-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 5px;
+  padding: 2px 4px;
+
+  &:hover {
+    background-color: var(--bg-button-color);
+  }
+
+  &.selected {
+    background-color: var(--bg-button-color-enabled);
+  }
+}
+
+.shop-edit-name {
+  flex: 1 1 auto;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shop-editor-title {
+  font-weight: 600;
+}
+
+.shop-editor-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shop-editor-item {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background-color: var(--bg-button-color);
+  color: var(--str-button-font);
+  cursor: pointer;
+  border: 2px solid transparent;
+
+  &:hover {
+    color: var(--str-button-font-active);
+  }
+
+  &.selected {
+    color: var(--str-button-font-active);
+    border-color: var(--bg-icon-button-active);
+    background-color: var(--bg-button-color-enabled);
+  }
 }
 </style>
 <style>

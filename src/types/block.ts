@@ -1,3 +1,5 @@
+import type { ItemId } from "./item";
+
 export const BlockDirections = ["up", "right", "down", "left"] as const;
 export type BlockDirection = (typeof BlockDirections)[number];
 
@@ -165,6 +167,13 @@ export type BlockRawData = {
   };
 
   editor_info?: string;
+
+  /**
+   * Какие предметы из глобального справочника (`shop_items`) продаются в блоке.
+   * Количество и цена каждого предмета одинаковы на всей карте и настраиваются
+   * отдельно (UI в меню), здесь хранится только список id.
+   */
+  sale_items?: ItemId[];
 };
 
 export type BlockData = {

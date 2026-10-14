@@ -4,16 +4,19 @@ import BlockCard from "@/components/card/BlockCard.vue";
 import BlockCommentsPanel from "@/components/comment/BlockCommentsPanel.vue";
 import CommentThreadPanel from "@/components/comment/CommentThreadPanel.vue";
 import MenuButton from "@/components/common/MenuButton.vue";
+import ShopItemsSettings from "@/components/shop/ShopItemsSettings.vue";
 import SearchBlock from "@/components/search/SearchBlock.vue";
 import SearchResults from "@/components/search/SearchResults.vue";
 import { repoManager } from "@/main";
 import { useAuthorization } from "@/stores/authorization";
 import { useBlocksStore } from "@/stores/blocks";
+import { useShopItemsStore } from "@/stores/shopItems";
 import { useTransitionsStore } from "@/stores/transitions";
 
 const authorization = useAuthorization();
 const blocksStore = useBlocksStore();
 const transitionsStore = useTransitionsStore();
+const shopItemsStore = useShopItemsStore();
 
 const toggleGlobalEditing = async () => {
   blocksStore.isEditing = !blocksStore.isEditing;
@@ -21,6 +24,7 @@ const toggleGlobalEditing = async () => {
     // Выключаем режим общего редактирования — отправляем накопленные изменения на сервер
     await blocksStore.endEditing();
     await transitionsStore.flushPending();
+    await shopItemsStore.flushItems();
   }
 };
 
@@ -89,6 +93,10 @@ const closeCard = async () => {
           ></MenuButton>
         </div>
         <SearchBlock></SearchBlock>
+        <ShopItemsSettings
+          v-if="blocksStore.isEditing"
+          class="shop-settings-panel"
+        ></ShopItemsSettings>
         <BlockCard
           v-if="blocksStore.selectedBlockId"
           :block-id="blocksStore.selectedBlockId"
@@ -142,6 +150,12 @@ const closeCard = async () => {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+  }
+
+  > .shop-settings-panel {
+    flex: 0 1 auto;
+    max-height: 26dvh;
+    min-height: 0;
   }
 }
 
