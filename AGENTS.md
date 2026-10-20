@@ -49,7 +49,7 @@ Free-план Supabase — встроенных бэкапов нет, поэт�
 
 Важные факты:
 
-- два вида файлов: `map_<UTC-время>.sql` (blocks, transitions, shop_items, roles, user_roles) и `comments_<UTC-время>.sql` (только comments) — комментарии бэкапятся отдельно
+- два вида файлов: `map_<UTC-время>.sql` (blocks, transitions, shop*items, roles, user_roles) и `comments*<UTC-время>.sql` (только comments) — комментарии бэкапятся отдельно
 - новые таблицы `public` нужно классифицировать в `MAP_TABLES`/`COMMENT_TABLES` (`scripts/backup-lib.mjs`), иначе попадут в оба дампа
 - восстановление map-бэкапа каскадно удаляет комментарии (FK на blocks) — их восстанавливают вторым шагом или `--kind all`
 - Docker нужен не только для восстановления: `supabase db dump` (сохранение) тоже выполняет pg_dump в Docker-контейнере — без запущенного Docker Desktop `backup:save` упадёт с `failed to inspect docker image`

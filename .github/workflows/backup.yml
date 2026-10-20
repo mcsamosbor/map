@@ -26,9 +26,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "24"
+          cache: npm
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+      # Supabase CLI берётся из devDependencies (npm ci) — это та же версия,
+      # что и локально (package-lock.json). supabase/setup-cli ставит другую
+      # версию, которая не понимает ключи supabase/config.toml
+      # ("failed to parse config ... invalid keys").
+      - name: Install dependencies (Supabase CLI)
+        run: npm ci
 
       # Создаёт map- и comments-бэкапы и отправляет их в приватный репозиторий
       # (секреты: SUPABASE_DB_URL, BACKUP_REPO, BACKUP_REPO_TOKEN).
