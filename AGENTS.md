@@ -38,9 +38,27 @@
 
 Разрешается и рекомендуется после написания кода запускать форматирование `npm run format`
 
+## Бэкапы базы данных
+
+Free-план Supabase — встроенных бэкапов нет, поэтому есть свои (`scripts/backup-*.mjs`, детали в README):
+
+- `npm run backup:save` — дамп через `supabase db dump` в `backups/` (в `.gitignore`); `--push` отправляет в приватный репозиторий `BACKUP_REPO`
+- `npm run backup:load` — восстановление через psql (Docker-фоллбэк `postgres:17`): `TRUNCATE ... RESTART IDENTITY CASCADE` + дамп одной транзакцией; требуется `SUPABASE_DB_URL` и подтверждение словом `RESTORE`
+- `npm run backup:clean` — очистка старых бэкапов (по умолчанию 30 дней, минимум 10 каждого вида); `--remote` чистит и приватный репозиторий
+- `.github/workflows/backup.yml` — автобэкап раз в 3 дня + очистка (секреты: `SUPABASE_DB_URL`, `BACKUP_REPO`, `BACKUP_REPO_TOKEN`)
+
+Важные факты:
+
+- два вида файлов: `map_<UTC-время>.sql` (blocks, transitions, shop_items, roles, user_roles) и `comments_<UTC-время>.sql` (только comments) — комментарии бэкапятся отдельно
+- новые таблицы `public` нужно классифицировать в `MAP_TABLES`/`COMMENT_TABLES` (`scripts/backup-lib.mjs`), иначе попадут в оба дампа
+- восстановление map-бэкапа каскадно удаляет комментарии (FK на blocks) — их восстанавливают вторым шагом или `--kind all`
+- скрипты написаны на Node `.mjs` с JSDoc-типизацией (без новых зависимостей; TS-раннер не используется, т.к. `engines` поддерживает Node 20.19)
+
 ## Структура проекта-папок
 
 - `supabase/` - тут описывается база данных supabase, её настройки и миграции
+
+- `scripts/` - dev-скрипты (Node `.mjs`): бэкапы базы (`backup-save/backup-load/backup-clean`, общая логика в `backup-lib.mjs`); запускаются через `npm run backup:*`
 
 - `src/components` - визуальные компоненты
 

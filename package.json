@@ -12,7 +12,10 @@
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/ scripts/",
+    "backup:save": "node scripts/backup-save.mjs",
+    "backup:load": "node scripts/backup-load.mjs",
+    "backup:clean": "node scripts/backup-clean.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.0",

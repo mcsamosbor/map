@@ -1,0 +1,48 @@
+name: DB backup
+
+on:
+  schedule:
+    # Каждые 3 дня в 04:00 UTC (07:00 МСК). Расписание работает только
+    # с ветки по умолчанию (master). Ручной запуск — workflow_dispatch.
+    - cron: "0 4 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+
+      # Создаёт map- и comments-бэкапы и отправляет их в приватный репозиторий
+      # (секреты: SUPABASE_DB_URL, BACKUP_REPO, BACKUP_REPO_TOKEN).
+      - name: Create backup and push to backups repo
+        run: node scripts/backup-save.mjs --push
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_REPO: ${{ secrets.BACKUP_REPO }}
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+
+      # Удаляет из приватного репозитория бэкапы старше 30 дней,
+      # оставляя минимум 10 последних каждого вида.
+      - name: Cleanup old backups
+        run: node scripts/backup-clean.mjs --remote
+        env:
+          BACKUP_REPO: ${{ secrets.BACKUP_REPO }}
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}

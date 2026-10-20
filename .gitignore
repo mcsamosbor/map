@@ -39,3 +39,6 @@ __screenshots__/
 *.timestamp-*-*.mjs
 
 .env
+
+# Локальные бэкапы базы данных (npm run backup:save)
+backups/
