@@ -42,7 +42,7 @@
 
 Free-план Supabase — встроенных бэкапов нет, поэтому есть свои (`scripts/backup-*.mjs`, детали в README):
 
-- `npm run backup:save` — дамп через `supabase db dump` в `backups/` (в `.gitignore`); `--push` отправляет в приватный репозиторий `BACKUP_REPO`
+- `npm run backup:save` — дамп через `supabase db dump` в `backups/` (в `.gitignore`); `--push` отправляет в приватный репозиторий `BACKUP_REPO`; нужен запущенный Docker Desktop — Supabase CLI крутит pg_dump в Docker-контейнере
 - `npm run backup:load` — восстановление через psql (Docker-фоллбэк `postgres:17`): `TRUNCATE ... RESTART IDENTITY CASCADE` + дамп одной транзакцией; требуется `SUPABASE_DB_URL` и подтверждение словом `RESTORE`
 - `npm run backup:clean` — очистка старых бэкапов (по умолчанию 30 дней, минимум 10 каждого вида); `--remote` чистит и приватный репозиторий
 - `.github/workflows/backup.yml` — автобэкап раз в 3 дня + очистка (секреты: `SUPABASE_DB_URL`, `BACKUP_REPO`, `BACKUP_REPO_TOKEN`)
@@ -52,6 +52,9 @@ Free-план Supabase — встроенных бэкапов нет, поэт�
 - два вида файлов: `map_<UTC-время>.sql` (blocks, transitions, shop_items, roles, user_roles) и `comments_<UTC-время>.sql` (только comments) — комментарии бэкапятся отдельно
 - новые таблицы `public` нужно классифицировать в `MAP_TABLES`/`COMMENT_TABLES` (`scripts/backup-lib.mjs`), иначе попадут в оба дампа
 - восстановление map-бэкапа каскадно удаляет комментарии (FK на blocks) — их восстанавливают вторым шагом или `--kind all`
+- Docker нужен не только для восстановления: `supabase db dump` (сохранение) тоже выполняет pg_dump в Docker-контейнере — без запущенного Docker Desktop `backup:save` упадёт с `failed to inspect docker image`
+- Если в контейнере не резолвится имя БД (`could not translate host name`), сломан DNS-форвардер Docker Desktop — включить «Use custom DNS servers» (1.1.1.1) в Settings → Resources → Network; наши docker-запуски (`backup:load`) уже передают `--dns 1.1.1.1 --dns 8.8.8.8`
+- `SUPABASE_DB_URL` обязан быть **session-pooler**-строкой из дашборда (Connect → Session pooler): direct-хост `db.<ref>.supabase.co` у новых проектов только IPv6 (GitHub Actions и обычные сети — IPv4-only), хост пулерa копируется из дашборда (`aws-N` — индекс кластера, не регион; для текущего проекта `aws-1-eu-central-1.pooler.supabase.com`, юзер `postgres.<ref>`)
 - скрипты написаны на Node `.mjs` с JSDoc-типизацией (без новых зависимостей; TS-раннер не используется, т.к. `engines` поддерживает Node 20.19)
 
 ## Структура проекта-папок

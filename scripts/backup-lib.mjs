@@ -180,7 +180,7 @@ export function run(command, args = [], options = {}) {
       if (options.echo) process.stderr.write(text);
     });
     child.on("error", (error) => {
-      reject(new Error(`Не удалось запустить \`${command}\`: ${error.message}`));
+      reject(new Error(redactSecrets(`Не удалось запустить \`${command}\`: ${error.message}`)));
     });
     child.stdin.on("error", () => {
       // psql/docker могли закрыть stdin раньше времени — ошибка проявится в "close"
@@ -193,7 +193,9 @@ export function run(command, args = [], options = {}) {
       } else {
         reject(
           new Error(
-            `Команда \`${command} ${args.join(" ")}\` завершилась с кодом ${code}\n${stderr || stdout}`,
+            redactSecrets(
+              `Команда \`${command} ${args.join(" ")}\` завершилась с кодом ${code}\n${stderr || stdout}`,
+            ),
           ),
         );
       }
@@ -208,6 +210,39 @@ export function run(command, args = [], options = {}) {
 export async function commandWorks(command) {
   const result = await run(command, ["--version"], { allowFailure: true }).catch(() => null);
   return result !== null && result.code === 0;
+}
+
+/**
+ * Определяет по тексту ошибки, что проблема в незапущенном демоне Docker.
+ * @param {string} message
+ */
+export function isDockerDaemonError(message) {
+  return /docker image|docker API|dockerDesktopLinuxEngine|daemon is running/i.test(message);
+}
+
+/**
+ * Определяет ошибки DNS внутри Docker-контейнера.
+ * @param {string} message
+ */
+export function isDockerDnsError(message) {
+  return /could not translate host name|name or service not known|temporary failure in name resolution|NXDOMAIN/i.test(
+    message,
+  );
+}
+
+/** Подсказка при проблемах DNS внутри Docker-контейнеров. */
+export const DOCKER_DNS_HINT =
+  "Подсказка: DNS внутри Docker-контейнера не разрешил имя БД. В Docker Desktop: Settings -> Resources -> Network ->\n" +
+  'включите "Use custom DNS servers", укажите 1.1.1.1 (или 8.8.8.8) -> Apply & restart.\n' +
+  "Проверка: docker run --rm alpine nslookup <имя-хоста-из-SUPABASE_DB_URL>";
+
+/**
+ * Убирает пароли/токены из URL в тексте (postgresql://user:pass@..., git-токены),
+ * чтобы секреты не попадали в сообщения об ошибках и логи.
+ * @param {string} text
+ */
+export function redactSecrets(text) {
+  return text.replace(/(:\/\/[^:\s]+:)[^@\s]+(@)/g, "$1***$2");
 }
 
 /** Возвращает команду Supabase CLI: ["supabase"] или ["npx", "supabase"]. */
@@ -279,11 +314,38 @@ export async function runPsqlSql(sql, dbEnv) {
   }
   if (await commandWorks("docker")) {
     console.log("psql не найден — использую Docker (образ postgres:17)");
-    return run(
-      "docker",
-      ["run", "--rm", "-i", ...DOCKER_PG_ENV_FLAGS, "postgres:17", "psql", "-v", "ON_ERROR_STOP=1"],
-      { env: dbEnv, stdin: text, echo: true },
-    );
+    try {
+      return await run(
+        "docker",
+        [
+          "run",
+          "--rm",
+          "-i",
+          // Публичные DNS на случай сломанного DNS-форвардера Docker Desktop
+          "--dns",
+          "1.1.1.1",
+          "--dns",
+          "8.8.8.8",
+          ...DOCKER_PG_ENV_FLAGS,
+          "postgres:17",
+          "psql",
+          "-v",
+          "ON_ERROR_STOP=1",
+        ],
+        { env: dbEnv, stdin: text, echo: true },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (isDockerDaemonError(message)) {
+        throw new Error(
+          `${message}\nПодсказка: запустите Docker Desktop либо установите psql (PostgreSQL client).`,
+        );
+      }
+      if (isDockerDnsError(message)) {
+        throw new Error(`${message}\n${DOCKER_DNS_HINT}`);
+      }
+      throw error;
+    }
   }
   throw new Error(
     "Не найден psql. Установите PostgreSQL client (psql) либо Docker (будет использован образ postgres:17).",

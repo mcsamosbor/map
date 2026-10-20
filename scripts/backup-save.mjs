@@ -18,14 +18,19 @@ import path from "node:path";
 import {
   BACKUPS_DIR,
   COMMENT_TABLES,
+  DOCKER_DNS_HINT,
   MAP_TABLES,
   backupFileName,
+  commandWorks,
   formatBytes,
   getFlag,
   getStringOption,
+  isDockerDaemonError,
+  isDockerDnsError,
   loadEnv,
   parseArgs,
   pushBackupsToRemote,
+  redactSecrets,
   resolveSupabaseCmd,
   run,
 } from "./backup-lib.mjs";
@@ -45,6 +50,9 @@ const HELP = `Создание бэкапов базы данных через S
   --db-url <url>    connection string (иначе SUPABASE_DB_URL из .env/окружения)
   --dry-run         показать команды, ничего не выполнять
   --help            эта справка
+
+Требуется запущенный Docker Desktop: Supabase CLI выполняет pg_dump
+внутри Docker-контейнера (даже при дампе удалённой базы).
 
 Файлы сохраняются в backups/ (в .gitignore). Время в именах файлов — UTC.`;
 
@@ -72,6 +80,17 @@ async function main() {
   }
 
   const supabaseCmd = dryRun ? ["supabase"] : await resolveSupabaseCmd();
+  if (!dryRun) {
+    const daemonUp =
+      (await commandWorks("docker")) &&
+      (await run("docker", ["info"], { allowFailure: true })).code === 0;
+    if (!daemonUp) {
+      console.log(
+        "ВНИМАНИЕ: Docker недоступен, а Supabase CLI выполняет pg_dump внутри Docker-контейнера.\n" +
+          "Запустите Docker Desktop и повторите — иначе дамп завершится ошибкой docker API.",
+      );
+    }
+  }
   const now = new Date();
   /** @type {string[]} */
   const created = [];
@@ -99,15 +118,33 @@ async function main() {
     ];
 
     if (dryRun) {
-      console.log(`[dry-run] ${commandLine.join(" ")}`);
+      console.log(`[dry-run] ${redactSecrets(commandLine.join(" "))}`);
       continue;
     }
 
     console.log(`Создаю ${name} ...`);
     await fs.promises.mkdir(BACKUPS_DIR, { recursive: true });
-    await run(commandLine[0], commandLine.slice(1));
+    try {
+      await run(commandLine[0], commandLine.slice(1));
+    } catch (error) {
+      // Не оставляем пустые/частичные дампы от неудачных запусков
+      await fs.promises.rm(file, { force: true });
+      const message = error instanceof Error ? error.message : String(error);
+      if (isDockerDaemonError(message)) {
+        throw new Error(
+          `${message}\nПодсказка: Supabase CLI выполняет pg_dump внутри Docker-контейнера — запустите Docker Desktop и повторите.`,
+        );
+      }
+      if (isDockerDnsError(message)) {
+        throw new Error(`${message}\n${DOCKER_DNS_HINT}`);
+      }
+      throw error;
+    }
     const stat = await fs.promises.stat(file);
-    if (!stat.size) throw new Error(`Файл ${name} пустой — дамп не создался`);
+    if (!stat.size) {
+      await fs.promises.rm(file, { force: true });
+      throw new Error(`Файл ${name} пустой — дамп не создался`);
+    }
     created.push(name);
     console.log(`  готово (${formatBytes(stat.size)})`);
   }

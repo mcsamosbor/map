@@ -51,14 +51,32 @@ npm run backup:clean -- --days 60 --min 5 # свои правила (по умо
 
 Переменные окружения (`.env` локально, Secrets в GitHub Actions — те же имена):
 
-- `SUPABASE_DB_URL` — connection string из дашборда Supabase: Settings → Database →
-  Connection string → URI. Нужен **Session pooler** или Direct connection
-  (Transaction pooler не поддерживает явные транзакции). Пароль должен быть
-  percent-encoded.
+- `SUPABASE_DB_URL` — connection string из дашборда Supabase: кнопка **Connect** →
+  вкладка **Session pooler** (именно её, не Direct и не Transaction pooler). Нюансы:
+  - Direct-хост `db.<ref>.supabase.co` у новых проектов **только IPv6** — из обычных
+    сетей и из GitHub Actions (они IPv4-only) до него не достучаться;
+  - хост пулерa копируется из дашборда: `aws-N` в имени — индекс кластера, а не регион
+    (у проекта во Frankfurt хост `aws-1-eu-central-1.pooler.supabase.com`, а `aws-0`
+    для него tenant не знает — будет `tenant/user ... not found`);
+  - имя пользователя пулерa — `postgres.<project-ref>`;
+  - Transaction pooler (порт 6543) не подходит — не переживает транзакции;
+  - пароль должен быть percent-encoded (`@` → `%40`).
+  В GitHub Actions секрет `SUPABASE_DB_URL` — тоже session-pooler-строка.
 - `BACKUP_REPO` — `owner/имя-приватного-репозитория` для хранения бэкапов;
 - `BACKUP_REPO_TOKEN` — PAT (fine-grained, `contents: read+write` на тот репозиторий).
 
-Для восстановления нужен `psql` в PATH либо Docker (фоллбэк: образ `postgres:17`).
+Требования к окружению:
+
+- `backup:save` — **запущенный Docker Desktop**: Supabase CLI выполняет `pg_dump`
+  внутри Docker-контейнера, даже при дампе удалённой базы (без запущенного демона
+  падает с ошибкой `failed to inspect docker image`);
+- `backup:load` — `psql` в PATH либо Docker (фоллбэк: контейнер `postgres:17`).
+
+Если pg_dump в контейнере падает с `could not translate host name ... Name or
+service not known` — сломан DNS-форвардер Docker Desktop. Лечение: Docker Desktop →
+Settings → Resources → Network → включить «Use custom DNS servers», указать
+`1.1.1.1` (или `8.8.8.8`) → Apply & restart. Проверка:
+`docker run --rm alpine nslookup <имя-хоста-из-SUPABASE_DB_URL>`.
 
 ### Восстановление
 
